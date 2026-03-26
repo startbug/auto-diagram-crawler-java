@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProcessOn 文件导出服务</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .slide-up { animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <!-- Header -->
+  <header class="gradient-bg text-white shadow-lg">
+    <div class="max-w-3xl mx-auto px-6 py-6">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">ProcessOn 文件导出</h1>
+          <p class="text-white/80 text-sm">快速导出 ProcessOn 协作链接为各种格式</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-8">
+    <!-- Main Form -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden fade-in">
+      <div class="p-6 space-y-6">
+        
+        <!-- File Link Input -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+              </svg>
+              文件链接
+            </span>
+          </label>
+          <input id="url-input" type="text" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            placeholder="https://www.processon.com/view/link/xxxxxx">
+          <p class="mt-1.5 text-xs text-gray-500">粘贴 ProcessOn 分享链接，支持公开链接和密码保护链接</p>
+        </div>
+
+        <!-- Password Input (Optional) -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              访问密码
+              <span class="text-xs font-normal text-gray-400">（可选）</span>
+            </span>
+          </label>
+          <input id="password-input" type="text" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            placeholder="如果链接有密码保护，请填写">
+        </div>
+
+        <!-- Email Input -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              接收邮箱
+            </span>
+          </label>
+          <input id="email-input" type="email" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            placeholder="your@email.com">
+          <p class="mt-1.5 text-xs text-gray-500">导出完成后，文件将发送到此邮箱</p>
+        </div>
+
+        <!-- Format Selection -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-3">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+              </svg>
+              导出格式
+            </span>
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="png-hd" class="peer hidden" checked>
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">高清 PNG</div>
+                <div class="text-xs text-gray-400 mt-0.5">推荐</div>
+              </div>
+            </label>
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="jpg-hd" class="peer hidden">
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">高清 JPG</div>
+              </div>
+            </label>
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="pdf" class="peer hidden">
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">PDF</div>
+              </div>
+            </label>
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="svg" class="peer hidden">
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">SVG</div>
+              </div>
+            </label>
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="pos" class="peer hidden">
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">POS</div>
+              </div>
+            </label>
+            <label class="format-option cursor-pointer">
+              <input type="radio" name="format" value="visio" class="peer hidden">
+              <div class="p-3 border-2 border-gray-200 rounded-xl text-center hover:border-indigo-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all">
+                <div class="text-sm font-medium text-gray-700 peer-checked:text-indigo-700">Visio</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Image Options (only for png/jpg) -->
+        <div id="image-options" class="p-4 bg-gray-50 rounded-xl space-y-4">
+          <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+            图片导出选项
+          </div>
+          
+          <!-- Quality -->
+          <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-600 w-16">清晰度:</span>
+            <div class="flex gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="quality" value="hd" class="peer hidden" checked>
+                <span class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition-all">高清</span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="quality" value="normal" class="peer hidden">
+                <span class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition-all">普通</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Watermark -->
+          <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-600 w-16">水印:</span>
+            <div class="flex gap-2 flex-wrap">
+              <label class="cursor-pointer">
+                <input type="radio" name="watermark" value="none" class="peer hidden" checked>
+                <span class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition-all">无水印</span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="watermark" value="system" class="peer hidden">
+                <span class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition-all">系统水印</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button id="submit-btn" onclick="submitExport()" 
+          class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          开始导出
+        </button>
+
+        <!-- Status Area -->
+        <div id="status-area" class="hidden">
+          <div class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
+            <div class="relative">
+              <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+              </div>
+              <div class="absolute inset-0 w-8 h-8 rounded-full border-2 border-blue-400 pulse-ring"></div>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-blue-900">正在处理中...</div>
+              <div class="text-xs text-blue-600 mt-0.5">预计需要 30-60 秒，请勿关闭页面</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Area -->
+        <div id="result-area" class="hidden space-y-3">
+          <!-- Success State -->
+          <div id="success-state" class="hidden p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <div class="flex-1">
+                <div class="text-sm font-semibold text-emerald-900">导出成功！</div>
+                <div class="text-xs text-emerald-600 mt-0.5">文件已发送至您的邮箱</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div id="error-state" class="hidden p-4 bg-red-50 rounded-xl border border-red-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </div>
+              <div class="flex-1">
+                <div class="text-sm font-semibold text-red-900">导出失败</div>
+                <div id="error-message" class="text-xs text-red-600 mt-0.5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="mt-8 grid grid-cols-3 gap-4 text-center">
+      <div class="p-4">
+        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div class="text-sm font-medium text-gray-700">快速导出</div>
+        <div class="text-xs text-gray-500 mt-1">30秒内完成</div>
+      </div>
+      <div class="p-4">
+        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <div class="text-sm font-medium text-gray-700">安全可靠</div>
+        <div class="text-xs text-gray-500 mt-1">自动删除缓存</div>
+      </div>
+      <div class="p-4">
+        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </div>
+        <div class="text-sm font-medium text-gray-700">多种格式</div>
+        <div class="text-xs text-gray-500 mt-1">支持 6+ 种格式</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center text-sm text-gray-400">
+      <p>导出完成后文件将发送至您的邮箱</p>
+      <p class="mt-1">如有问题请联系管理员</p>
+    </div>
+  </main>
+
+  <script>
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-emerald-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500',
+      };
+      const div = document.createElement('div');
+      div.className = `px-4 py-3 rounded-xl text-white text-sm font-medium shadow-lg ${colors[type] || colors.info} slide-up`;
+      div.textContent = message;
+      container.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(-10px)';
+        div.style.transition = 'all 0.3s ease';
+        setTimeout(() => div.remove(), 300);
+      }, 3000);
+    }
+
+    // Show/hide image options based on format
+    document.querySelectorAll('input[name="format"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const imageOptions = document.getElementById('image-options');
+        if (e.target.value === 'png-hd' || e.target.value === 'jpg-hd' || e.target.value === 'png' || e.target.value === 'jpg') {
+          imageOptions.classList.remove('hidden');
+        } else {
+          imageOptions.classList.add('hidden');
+        }
+      });
+    });
+
+    // Submit export request
+    async function submitExport() {
+      const url = document.getElementById('url-input').value.trim();
+      const password = document.getElementById('password-input').value.trim();
+      const email = document.getElementById('email-input').value.trim();
+      const format = document.querySelector('input[name="format"]:checked')?.value;
+      const quality = document.querySelector('input[name="quality"]:checked')?.value;
+      const watermark = document.querySelector('input[name="watermark"]:checked')?.value;
+
+      // Validation
+      if (!url) {
+        showToast('请填写文件链接', 'error');
+        document.getElementById('url-input').focus();
+        return;
+      }
+      if (!url.includes('processon.com')) {
+        showToast('请输入有效的 ProcessOn 链接', 'error');
+        return;
+      }
+      if (!email) {
+        showToast('请填写接收邮箱', 'error');
+        document.getElementById('email-input').focus();
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('请输入有效的邮箱地址', 'error');
+        return;
+      }
+
+      // Show loading state
+      document.getElementById('submit-btn').disabled = true;
+      document.getElementById('submit-btn').innerHTML = `
+        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+        </svg>
+        处理中...
+      `;
+      document.getElementById('status-area').classList.remove('hidden');
+      document.getElementById('result-area').classList.add('hidden');
+      document.getElementById('success-state').classList.add('hidden');
+      document.getElementById('error-state').classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/export/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            password: password || undefined,
+            email,
+            format,
+            quality,
+            watermark
+          })
+        });
+
+        const result = await response.json();
+
+        document.getElementById('status-area').classList.add('hidden');
+        document.getElementById('result-area').classList.remove('hidden');
+
+        if (result.success) {
+          document.getElementById('success-state').classList.remove('hidden');
+          showToast('导出请求已提交，请查收邮件', 'success');
+          // Reset form
+          document.getElementById('url-input').value = '';
+          document.getElementById('password-input').value = '';
+          document.getElementById('email-input').value = '';
+        } else {
+          document.getElementById('error-state').classList.remove('hidden');
+          document.getElementById('error-message').textContent = result.error || '导出失败，请稍后重试';
+          showToast(result.error || '导出失败', 'error');
+        }
+      } catch (error) {
+        document.getElementById('status-area').classList.add('hidden');
+        document.getElementById('result-area').classList.remove('hidden');
+        document.getElementById('error-state').classList.remove('hidden');
+        document.getElementById('error-message').textContent = '网络错误，请稍后重试';
+        showToast('网络错误，请稍后重试', 'error');
+      } finally {
+        // Reset button
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('submit-btn').innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          开始导出
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

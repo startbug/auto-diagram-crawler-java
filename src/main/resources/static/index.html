@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export Bot - Auth Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .toast { animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s; }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Toast Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">Export Bot</h1>
+        <p class="text-sm text-gray-500">Authentication & Export Management</p>
+      </div>
+    </div>
+    <div id="status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm">
+      <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+      <span>Ready</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-6 py-8 space-y-6">
+
+  <!-- Cookie Section -->
+  <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-gray-900">Cookies</h2>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="toggleParsePanel('string')" class="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+          Parse String
+        </button>
+        <button onclick="toggleParsePanel('json')" class="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+          Parse JSON
+        </button>
+        <button onclick="addCookie()" class="text-sm px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg transition-colors">
+          + Add Cookie
+        </button>
+      </div>
+    </div>
+    <div class="px-6 py-4">
+      <!-- Parse String Panel -->
+      <div id="cookie-parse-string" class="mb-4 hidden">
+        <div class="flex gap-3 mb-2">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Default Domain:</label>
+            <input id="cookie-default-domain" type="text" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all" placeholder=".example.com (from your site URL)">
+            <p class="mt-1 text-xs text-gray-400">Parsed cookies will use this domain. E.g. site is https://app.example.com, fill in .example.com</p>
+          </div>
+        </div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">Paste cookie string from request headers:</label>
+        <textarea id="cookie-raw" rows="3" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none" placeholder="session_id=abc123; token=xyz789; ..."></textarea>
+        <button onclick="doParseCookieString()" class="mt-2 text-sm px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Parse</button>
+      </div>
+      <!-- Parse JSON Panel -->
+      <div id="cookie-parse-json" class="mb-4 hidden">
+        <label class="block text-sm font-medium text-gray-600 mb-1">Paste JSON cookie array (e.g. from EditThisCookie / browser extension export):</label>
+        <textarea id="cookie-json" rows="6" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none" placeholder='[{"name":"token","value":"xxx","domain":".example.com","path":"/"},...]'></textarea>
+        <div class="mt-2 flex items-center gap-3">
+          <button onclick="doParseCookieJson()" class="text-sm px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Parse</button>
+          <label class="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+            <input type="checkbox" id="json-replace" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+            <span>Replace existing cookies</span>
+          </label>
+        </div>
+      </div>
+      <div id="cookie-list" class="space-y-3">
+        <!-- Cookie entries will be rendered here -->
+      </div>
+      <div id="cookie-empty" class="text-center py-8 text-gray-400 text-sm">
+        No cookies configured. Click "Add Cookie" or "Parse String" to add.
+      </div>
+    </div>
+  </section>
+
+  <!-- Token Section -->
+  <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+      <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+      </svg>
+      <h2 class="text-lg font-semibold text-gray-900">Token</h2>
+    </div>
+    <div class="px-6 py-4 space-y-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">Header Name</label>
+        <input id="token-header-input" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all" placeholder="Token" value="Token">
+        <p class="mt-1 text-xs text-gray-400">The HTTP header key used for token authentication (e.g. Token, Authorization, X-Access-Token)</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">Token Value</label>
+        <input id="token-input" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all" placeholder="your-token-value-here">
+        <p class="mt-1 text-xs text-gray-400">Enter the token value, will be sent as the header value directly</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Custom Headers Section -->
+  <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden fade-in">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-gray-900">Custom Headers</h2>
+      </div>
+      <button onclick="addHeader()" class="text-sm px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg transition-colors">
+        + Add Header
+      </button>
+    </div>
+    <div class="px-6 py-4">
+      <div id="header-list" class="space-y-3">
+        <!-- Header entries will be rendered here -->
+      </div>
+      <div id="header-empty" class="text-center py-6 text-gray-400 text-sm">
+        No custom headers. Click "Add Header" to add request headers.
+      </div>
+    </div>
+  </section>
+
+  <!-- Actions -->
+  <div class="flex flex-col sm:flex-row gap-3">
+    <button onclick="saveAuth()" class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      Save Configuration
+    </button>
+    <button onclick="triggerExport()" class="flex-1 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Run Export Now
+    </button>
+  </div>
+
+  <!-- Last update info -->
+  <div id="last-update" class="text-center text-sm text-gray-400 pb-4"></div>
+</main>
+
+<script>
+  let cookies = [];
+  let headers = {};
+
+  // ---- Toast ----
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const colors = {
+      success: 'bg-emerald-500',
+      error: 'bg-red-500',
+      info: 'bg-primary-500',
+    };
+    const div = document.createElement('div');
+    div.className = `toast px-4 py-3 rounded-xl text-white text-sm font-medium shadow-lg ${colors[type] || colors.info}`;
+    div.textContent = message;
+    container.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+  }
+
+  // ---- Cookie Management ----
+  function renderCookies() {
+    const list = document.getElementById('cookie-list');
+    const empty = document.getElementById('cookie-empty');
+    list.innerHTML = '';
+    empty.classList.toggle('hidden', cookies.length > 0);
+
+    cookies.forEach((c, i) => {
+      list.innerHTML += `
+        <div class="flex gap-2 items-start p-3 bg-gray-50 rounded-xl">
+          <div class="flex-1 grid grid-cols-2 gap-2">
+            <input value="${esc(c.name)}" onchange="cookies[${i}].name=this.value" placeholder="Name" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+            <input value="${esc(c.value)}" onchange="cookies[${i}].value=this.value" placeholder="Value" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+            <input value="${esc(c.domain)}" onchange="cookies[${i}].domain=this.value" placeholder="Domain (e.g. .example.com)" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+            <input value="${esc(c.path)}" onchange="cookies[${i}].path=this.value" placeholder="Path (default: /)" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+          </div>
+          <button onclick="removeCookie(${i})" class="mt-1 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>`;
+    });
+  }
+
+  function addCookie() {
+    cookies.push({ name: '', value: '', domain: '', path: '/' });
+    renderCookies();
+  }
+
+  function removeCookie(i) {
+    cookies.splice(i, 1);
+    renderCookies();
+  }
+
+  function toggleParsePanel(type) {
+    const stringPanel = document.getElementById('cookie-parse-string');
+    const jsonPanel = document.getElementById('cookie-parse-json');
+    if (type === 'string') {
+      jsonPanel.classList.add('hidden');
+      stringPanel.classList.toggle('hidden');
+    } else {
+      stringPanel.classList.add('hidden');
+      jsonPanel.classList.toggle('hidden');
+    }
+  }
+
+  function doParseCookieString() {
+    const raw = document.getElementById('cookie-raw').value.trim();
+    if (!raw) return;
+    const defaultDomain = document.getElementById('cookie-default-domain').value.trim();
+    const pairs = raw.split(';').map(s => s.trim()).filter(Boolean);
+    for (const pair of pairs) {
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx > 0) {
+        cookies.push({
+          name: pair.substring(0, eqIdx).trim(),
+          value: pair.substring(eqIdx + 1).trim(),
+          domain: defaultDomain,
+          path: '/',
+        });
+      }
+    }
+    document.getElementById('cookie-raw').value = '';
+    document.getElementById('cookie-parse-string').classList.add('hidden');
+    renderCookies();
+    const domainNote = defaultDomain ? ` (domain: ${defaultDomain})` : ' (no domain, will auto-detect from workflow URL)';
+    showToast(`Parsed ${pairs.length} cookie(s)${domainNote}`, 'info');
+  }
+
+  function doParseCookieJson() {
+    const raw = document.getElementById('cookie-json').value.trim();
+    if (!raw) return;
+    try {
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) {
+        showToast('JSON must be an array of cookie objects', 'error');
+        return;
+      }
+      const replace = document.getElementById('json-replace').checked;
+      if (replace) cookies = [];
+      let count = 0;
+      for (const item of arr) {
+        if (item.name && item.value != null) {
+          cookies.push({
+            name: String(item.name),
+            value: String(item.value),
+            domain: String(item.domain || ''),
+            path: String(item.path || '/'),
+          });
+          count++;
+        }
+      }
+      document.getElementById('cookie-json').value = '';
+      document.getElementById('cookie-parse-json').classList.add('hidden');
+      renderCookies();
+      showToast(`${replace ? 'Replaced' : 'Imported'} ${count} cookie(s) from JSON`, 'success');
+    } catch (e) {
+      showToast('Invalid JSON: ' + e.message, 'error');
+    }
+  }
+
+  // ---- Header Management ----
+  function renderHeaders() {
+    const list = document.getElementById('header-list');
+    const empty = document.getElementById('header-empty');
+    const keys = Object.keys(headers);
+    list.innerHTML = '';
+    empty.classList.toggle('hidden', keys.length > 0);
+
+    keys.forEach((key) => {
+      list.innerHTML += `
+        <div class="flex gap-2 items-center p-3 bg-gray-50 rounded-xl">
+          <input value="${esc(key)}" data-old-key="${esc(key)}" onchange="renameHeader(this.dataset.oldKey, this.value)" placeholder="Header Name" class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+          <input value="${esc(headers[key])}" onchange="headers['${esc(key)}']=this.value" placeholder="Header Value" class="flex-[2] px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
+          <button onclick="removeHeader('${esc(key)}')" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>`;
+    });
+  }
+
+  function addHeader() {
+    const key = `X-Custom-${Object.keys(headers).length + 1}`;
+    headers[key] = '';
+    renderHeaders();
+  }
+
+  function removeHeader(key) {
+    delete headers[key];
+    renderHeaders();
+  }
+
+  function renameHeader(oldKey, newKey) {
+    if (oldKey === newKey) return;
+    const val = headers[oldKey];
+    delete headers[oldKey];
+    headers[newKey] = val;
+    renderHeaders();
+  }
+
+  // ---- API ----
+  async function loadAuth() {
+    try {
+      const resp = await fetch('/api/auth');
+      const data = await resp.json();
+      cookies = data.cookies || [];
+      headers = data.headers || {};
+      document.getElementById('token-input').value = data.token || '';
+      document.getElementById('token-header-input').value = data.tokenHeader || 'Token';
+      if (data.updatedAt) {
+        document.getElementById('last-update').textContent = `Last updated: ${new Date(data.updatedAt).toLocaleString()}`;
+      }
+      renderCookies();
+      renderHeaders();
+    } catch (e) {
+      console.error('Failed to load auth', e);
+    }
+  }
+
+  async function saveAuth() {
+    // Re-read DOM values for cookies
+    const cookieRows = document.querySelectorAll('#cookie-list > div');
+    cookies = Array.from(cookieRows).map((row) => {
+      const inputs = row.querySelectorAll('input');
+      return {
+        name: inputs[0]?.value || '',
+        value: inputs[1]?.value || '',
+        domain: inputs[2]?.value || '',
+        path: inputs[3]?.value || '/',
+      };
+    });
+
+    // Re-read headers from DOM
+    const headerRows = document.querySelectorAll('#header-list > div');
+    headers = {};
+    headerRows.forEach((row) => {
+      const inputs = row.querySelectorAll('input');
+      const k = inputs[0]?.value?.trim();
+      if (k) headers[k] = inputs[1]?.value || '';
+    });
+
+    const body = {
+      cookies,
+      token: document.getElementById('token-input').value.trim(),
+      tokenHeader: document.getElementById('token-header-input').value.trim() || 'Token',
+      headers,
+    };
+
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        showToast('Configuration saved!', 'success');
+        document.getElementById('last-update').textContent = `Last updated: ${new Date(result.updatedAt).toLocaleString()}`;
+      } else {
+        showToast('Save failed', 'error');
+      }
+    } catch (e) {
+      showToast('Save failed: ' + e.message, 'error');
+    }
+  }
+
+  async function triggerExport() {
+    const badge = document.getElementById('status-badge');
+    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span>Running...</span>';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-sm';
+    showToast('Export started...', 'info');
+
+    try {
+      const resp = await fetch('/api/trigger', { method: 'POST' });
+      const result = await resp.json();
+
+      if (result.success) {
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Success</span>';
+        badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm';
+        showToast(`Export completed! ${result.downloads?.length || 0} file(s) downloaded.`, 'success');
+      } else {
+        throw new Error(result.error || 'Export failed');
+      }
+    } catch (e) {
+      badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span><span>Failed</span>';
+      badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 text-red-700 text-sm';
+      showToast('Export failed: ' + e.message, 'error');
+    }
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Init
+  loadAuth();
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+server:
+  port: 3000
+
+spring:
+  application:
+    name: auto-diagram-crawler
+  main:
+    web-application-type: servlet
+  quartz:
+    job-store-type: memory
+    properties:
+      org.quartz.scheduler.instanceName: CrawlerScheduler
+      org.quartz.threadPool.threadCount: 2
+
+crawler:
+  server:
+    port: 3000
+    host: 127.0.0.1
+  browser:
+    headless: false
+    slowMo: 50
+    timeout: 30000
+    downloadDir: ./data/downloads
+  auth:
+    storePath: ./data/auth.json
+  workflow:
+    file: ./config/workflows/example-export.yaml
+  schedule:
+    enabled: false
+    cron: "0 9 * * 1"
+  delivery: []
+
+logging:
+  level:
+    com.exportbot.crawler: INFO
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
