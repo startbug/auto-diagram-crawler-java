@@ -55,7 +55,16 @@ public class CliCommands implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (args.length == 0) {
+        // Check if any args are actual CLI commands (not Spring Boot properties like --server.port)
+        boolean hasCliCommand = false;
+        for (String arg : args) {
+            if (!arg.startsWith("--") && !arg.startsWith("-D")) {
+                hasCliCommand = true;
+                break;
+            }
+        }
+        
+        if (!hasCliCommand) {
             // No CLI args, let Spring Boot run as web server
             return;
         }

@@ -1,11 +1,16 @@
 server:
-  port: 3000
+  port: 8080
 
 spring:
   application:
     name: auto-diagram-crawler
   main:
     web-application-type: servlet
+  datasource:
+    url:
+    username:
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
   quartz:
     job-store-type: memory
     properties:

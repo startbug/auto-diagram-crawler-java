@@ -39,7 +39,8 @@ public class ExportController {
                 if (request.watermark != null) variables.put("watermark", request.watermark);
             }
 
-            var result = pipelineService.runPipeline(null, false, variables);
+            String workflowId = request != null ? request.workflowId : null;
+            var result = pipelineService.runPipeline(workflowId, false, variables);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", result.workflow().success());
@@ -90,6 +91,7 @@ public class ExportController {
     }
 
     public static class TriggerRequest {
+        public String workflowId;  // 工作流ID（从数据库加载）
         public String url;
         public String password;
         public String format;

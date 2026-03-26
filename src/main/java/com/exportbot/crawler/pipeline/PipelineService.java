@@ -10,6 +10,7 @@ import com.exportbot.crawler.config.Workflow;
 import com.exportbot.crawler.delivery.DeliveryManager;
 import com.exportbot.crawler.delivery.DeliveryPlugin;
 import com.exportbot.crawler.engine.WorkflowRunner;
+import com.exportbot.crawler.repository.WorkflowRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,13 +32,14 @@ public class PipelineService {
     private final BrowserFactory browserFactory;
     private final WorkflowRunner workflowRunner;
     private final DeliveryManager deliveryManager;
+    private final WorkflowRepository workflowRepository;
 
     private volatile boolean running = false;
 
     public PipelineService(AppConfig config, ConfigLoader configLoader,
                           AuthStore authStore, AuthInjector authInjector,
                           BrowserFactory browserFactory, WorkflowRunner workflowRunner,
-                          DeliveryManager deliveryManager) {
+                          DeliveryManager deliveryManager, WorkflowRepository workflowRepository) {
         this.config = config;
         this.configLoader = configLoader;
         this.authStore = authStore;
@@ -45,6 +47,7 @@ public class PipelineService {
         this.browserFactory = browserFactory;
         this.workflowRunner = workflowRunner;
         this.deliveryManager = deliveryManager;
+        this.workflowRepository = workflowRepository;
     }
 
     public PipelineResult runPipeline(String workflowFile, boolean skipDelivery, Map<String, Object> variables) {
@@ -55,9 +58,16 @@ public class PipelineService {
 
         long startTime = System.currentTimeMillis();
         try {
-            // Load workflow
-            String workflowPath = workflowFile != null ? workflowFile : config.getWorkflow().getFile();
-            Workflow workflow = configLoader.loadWorkflow(workflowPath);
+            // Load workflow from database or file
+            Workflow workflow;
+            if (workflowFile != null && !workflowFile.contains("/") && !workflowFile.contains("\\") && !workflowFile.endsWith(".yaml") && !workflowFile.endsWith(".yml")) {
+                // It's a workflow ID, load from database
+                workflow = workflowRepository.loadWorkflow(workflowFile);
+            } else {
+                // It's a file path, load from file
+                String workflowPath = workflowFile != null ? workflowFile : config.getWorkflow().getFile();
+                workflow = configLoader.loadWorkflow(workflowPath);
+            }
 
             // Ensure download directory
             String downloadDir = Paths.get(config.getBrowser().getDownloadDir()).toAbsolutePath().toString();

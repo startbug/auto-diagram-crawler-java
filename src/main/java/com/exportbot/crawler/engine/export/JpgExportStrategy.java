@@ -35,29 +35,47 @@ public class JpgExportStrategy implements ExportStrategy {
         Page page = context.getPage();
 
         // Click JPG format option
-        page.locator("[data-format='jpg']").click();
+        page.locator("#header-export-menu > li:nth-child(2) > div > span.po-menu-icon.po-diagraming-icons").click();
         logger.debug("Selected JPG format");
 
-        // Handle quality selection
+        // Handle quality selection if needed
         if ("hd".equalsIgnoreCase(quality)) {
-            page.locator("[data-quality='hd']").click();
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_f_set_up_hd > div:nth-child(1) > input")
+                    .click();
             logger.debug("Selected HD quality");
+        } else {
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_f_set_up_hd > div:nth-child(2) > input")
+                    .click();
+            logger.debug("Selected Normal quality");
         }
 
         // Handle watermark
-        if (watermark != null && !"none".equalsIgnoreCase(watermark)) {
-            if ("system".equalsIgnoreCase(watermark)) {
-                page.locator("[data-watermark='system']").click();
-            } else if ("custom".equalsIgnoreCase(watermark) && customWatermarkText != null) {
-                page.locator("[data-watermark='custom']").click();
-                page.locator("#watermark-text").fill(customWatermarkText);
-            }
-            logger.debug("Applied watermark: {}", watermark);
+
+        if ("system".equals(watermark)) {
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_f_set_up > div:nth-child(1) > span")
+                    .click();
+            logger.debug("选择系统水印");
+        } else if ("custom".equals(watermark)) {
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_f_set_up > div:nth-child(3) > input")
+                    .click();
+            logger.debug("选择自定义水印");
+        } else {
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_f_set_up > div:nth-child(2) > span")
+                    .click();
+            logger.debug("选择无水印");
         }
+        logger.debug("Applied watermark: {}", watermark);
 
         // Click confirm and wait for download
         Download download = page.waitForDownload(() -> {
-            page.locator(".export-confirm-btn").click();
+            page.locator(
+                            "body > div.water_mark_bg > div > div.water_content_detail > div.water_mark_choose_detail > div.w_m_r_bottom > div.w_m_start_out")
+                    .click();
         });
 
         Path downloadPath = Paths.get(context.getDownloadDir(), download.suggestedFilename());

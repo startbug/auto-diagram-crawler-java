@@ -35,7 +35,7 @@ public class SvgExportStrategy implements ExportStrategy {
         Page page = context.getPage();
 
         Download download = page.waitForDownload(() -> {
-            page.locator("[data-format='svg']").click();
+            page.locator("#header-export-menu > li:nth-child(6) > div > span.text").click();
         });
 
         Path downloadPath = Paths.get(context.getDownloadDir(), download.suggestedFilename());

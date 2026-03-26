@@ -2,6 +2,8 @@ package com.exportbot.crawler.auth;
 
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.SameSiteAttribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -10,6 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import com.microsoft.playwright.Route;
 
 @Component
 public class AuthInjector {
@@ -29,7 +32,7 @@ public class AuthInjector {
     }
 
     private void injectCookies(BrowserContext context, List<AuthData.Cookie> cookies, String targetUrl) {
-        List<com.microsoft.playwright.options.Cookie> playwrightCookies = new ArrayList<>();
+        List<Cookie> playwrightCookies = new ArrayList<>();
 
         for (AuthData.Cookie cookie : cookies) {
             String domain = cookie.getDomain();
@@ -37,9 +40,7 @@ public class AuthInjector {
                 domain = extractDomain(targetUrl);
             }
 
-            com.microsoft.playwright.options.Cookie pwCookie = new com.microsoft.playwright.options.Cookie(
-                    cookie.getName(), cookie.getValue()
-            );
+            Cookie pwCookie = new Cookie(cookie.getName(), cookie.getValue());
             pwCookie.setDomain(domain);
             pwCookie.setPath(cookie.getPath());
             if (cookie.getExpires() != null) {
@@ -47,13 +48,28 @@ public class AuthInjector {
             }
             pwCookie.setHttpOnly(cookie.isHttpOnly());
             pwCookie.setSecure(cookie.isSecure());
-            pwCookie.setSameSite(cookie.getSameSite());
+            
+            // Convert SameSite string to enum
+            SameSiteAttribute sameSite = parseSameSite(cookie.getSameSite());
+            if (sameSite != null) {
+                pwCookie.setSameSite(sameSite);
+            }
 
             playwrightCookies.add(pwCookie);
         }
 
         context.addCookies(playwrightCookies);
         logger.info("Injected {} cookies", playwrightCookies.size());
+    }
+
+    private SameSiteAttribute parseSameSite(String sameSite) {
+        if (sameSite == null) return null;
+        return switch (sameSite.toLowerCase()) {
+            case "strict" -> SameSiteAttribute.STRICT;
+            case "lax" -> SameSiteAttribute.LAX;
+            case "none" -> SameSiteAttribute.NONE;
+            default -> SameSiteAttribute.LAX;
+        };
     }
 
     private void injectHeaders(Page page, AuthData auth) {
@@ -72,7 +88,7 @@ public class AuthInjector {
                 logger.debug("Injected custom header: {}", key);
             });
 
-            route.resume(new com.microsoft.playwright.options.Route.ResumeOptions().setHeaders(headers));
+            route.resume(new Route.ResumeOptions().setHeaders(headers));
         });
 
         logger.info("Set up header injection");

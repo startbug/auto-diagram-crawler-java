@@ -5,6 +5,7 @@ import com.exportbot.crawler.engine.export.ExportStrategyFactory;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Response;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @Component
 public class StepExecutor {
@@ -26,6 +28,8 @@ public class StepExecutor {
         this.exportStrategyFactory = exportStrategyFactory;
     }
 
+    private final Random random = new Random();
+
     public void execute(WorkflowStep step, WorkflowContext context) throws Exception {
         String type = step.getType();
         
@@ -36,6 +40,8 @@ public class StepExecutor {
             case "select" -> executeSelect(step, context);
             case "waitForSelector" -> executeWaitForSelector(step, context);
             case "waitForTimeout" -> executeWaitForTimeout(step, context);
+            case "waitForRandomTimeout" -> executeWaitForRandomTimeout(step, context);
+            case "waitForResponse" -> executeWaitForResponse(step, context);
             case "evaluate" -> executeEvaluate(step, context);
             case "screenshot" -> executeScreenshot(step, context);
             case "renameDownload" -> executeRenameDownload(step, context);
@@ -43,6 +49,9 @@ public class StepExecutor {
             case "loop" -> executeLoop(step, context);
             case "conditional" -> executeConditional(step, context);
             case "exportWithStrategy" -> executeExportWithStrategy(step, context);
+            case "moveMouse" -> executeMoveMouse(step, context);
+            case "scroll" -> executeScroll(step, context);
+            case "hover" -> executeHover(step, context);
             default -> throw new UnsupportedOperationException("Unknown step type: " + type);
         }
     }
@@ -69,6 +78,10 @@ public class StepExecutor {
         logger.info("Clicking element: {}", selector);
         Page page = context.getPage();
         Locator element = page.locator(selector);
+
+        // 先等待元素可见并短暂等待动画完成
+        element.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+        Thread.sleep(2000); // 等待2秒让元素稳定（动画完成）
 
         if (Boolean.TRUE.equals(waitForDownload)) {
             Download download = page.waitForDownload(() -> element.click());
@@ -121,6 +134,89 @@ public class StepExecutor {
 
         logger.info("Waiting for {} ms", ms);
         Thread.sleep(ms);
+    }
+
+    private void executeWaitForRandomTimeout(WorkflowStep step, WorkflowContext context) throws InterruptedException {
+        Integer min = step.getMin() != null ? step.getMin() : 1000;
+        Integer max = step.getMax() != null ? step.getMax() : 5000;
+        int ms = random.nextInt(max - min + 1) + min;
+
+        // 保存到上下文变量
+        if (step.getSaveAs() != null) {
+            context.setVariable(step.getSaveAs(), ms);
+        }
+
+        logger.info("Waiting random time: {} ms (min: {}, max: {})", ms, min, max);
+        Thread.sleep(ms);
+    }
+
+    private void executeWaitForResponse(WorkflowStep step, WorkflowContext context) {
+        String urlPattern = step.getUrlPattern() != null ? step.getUrlPattern() : step.getPattern();
+        Integer timeout = step.getTimeout() != null ? step.getTimeout() : 30000;
+
+        logger.info("Waiting for response matching: {}", urlPattern);
+        Page page = context.getPage();
+
+        // Playwright Java API: waitForResponse 使用 Runnable 回调
+        Response[] responseHolder = new Response[1];
+        page.waitForResponse(
+            resp -> {
+                if (resp.url().contains(urlPattern)) {
+                    responseHolder[0] = resp;
+                    return true;
+                }
+                return false;
+            },
+            () -> {
+                // 等待响应期间不需要额外操作
+                try {
+                    Thread.sleep(timeout);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        );
+
+        Response response = responseHolder[0];
+        if (response == null) {
+            throw new RuntimeException("No response received matching: " + urlPattern);
+        }
+
+        logger.info("Response received: {} - {}", response.url(), response.status());
+
+        // 解析 JSON 响应
+        Map<String, Object> responseData = null;
+        try {
+            String text = response.text();
+            responseData = new com.fasterxml.jackson.databind.ObjectMapper().readValue(text, Map.class);
+        } catch (Exception e) {
+            logger.warn("Failed to parse response as JSON: {}", e.getMessage());
+        }
+
+        if (step.getSaveAs() != null) {
+            context.setVariable(step.getSaveAs(), responseData);
+            logger.info("Response saved to variable: {}", step.getSaveAs());
+        }
+
+        // 支持 JSONPath 提取特定字段
+        if (step.getJsonPath() != null && responseData != null) {
+            Object extracted = extractJsonPath(responseData, step.getJsonPath());
+            context.setVariable(step.getSaveAs() + "_extracted", extracted);
+            logger.info("Extracted from response using '{}': {}", step.getJsonPath(), extracted);
+        }
+    }
+
+    private Object extractJsonPath(Map<String, Object> obj, String path) {
+        String[] parts = path.split("\\.");
+        Object current = obj;
+        for (String part : parts) {
+            if (current instanceof Map) {
+                current = ((Map<String, Object>) current).get(part);
+            } else {
+                return null;
+            }
+        }
+        return current;
     }
 
     private void executeEvaluate(WorkflowStep step, WorkflowContext context) {
@@ -224,5 +320,84 @@ public class StepExecutor {
         logger.info("Exporting with strategy: format={}, quality={}, watermark={}", format, quality, watermark);
 
         exportStrategyFactory.getStrategy(format).execute(context, quality, watermark, customWatermarkText);
+    }
+
+    private void executeMoveMouse(WorkflowStep step, WorkflowContext context) throws InterruptedException {
+        String selector = context.interpolate(step.getSelector());
+        Page page = context.getPage();
+
+        Locator locator = page.locator(selector);
+        if (locator.count() == 0) {
+            logger.warn("Element not found for mouse move: {}", selector);
+            return;
+        }
+
+        // 获取元素位置
+        com.microsoft.playwright.JSHandle handle = locator.evaluateHandle("el => ({ x: el.getBoundingClientRect().x, y: el.getBoundingClientRect().y, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height })");
+        Map<String, Object> box = (Map<String, Object>) handle.jsonValue();
+        
+        if (box == null) {
+            logger.warn("Element has no bounding box: {}", selector);
+            return;
+        }
+
+        double x = ((Number) box.get("x")).doubleValue();
+        double y = ((Number) box.get("y")).doubleValue();
+        double width = ((Number) box.get("width")).doubleValue();
+        double height = ((Number) box.get("height")).doubleValue();
+
+        // 随机偏移，不精确对准中心
+        double offsetX = (random.nextDouble() - 0.5) * 20;
+        double offsetY = (random.nextDouble() - 0.5) * 20;
+        double targetX = x + width / 2 + offsetX;
+        double targetY = y + height / 2 + offsetY;
+
+        // 分多步移动，模拟真人轨迹
+        int steps = random.nextInt(6) + 3; // 3-8步
+
+        for (int i = 1; i <= steps; i++) {
+            double progress = (double) i / steps;
+            double nextX = targetX * progress + (random.nextDouble() - 0.5) * 50;
+            double nextY = targetY * progress + (random.nextDouble() - 0.5) * 50;
+            page.mouse().move(nextX, nextY);
+            Thread.sleep((long) (random.nextDouble() * 100 + 50));
+        }
+
+        logger.info("Mouse moved to: {} (selector: {}, steps: {})", targetX + "," + targetY, selector, steps);
+    }
+
+    private void executeScroll(WorkflowStep step, WorkflowContext context) throws InterruptedException {
+        String direction = step.getDirection() != null ? step.getDirection() : "down";
+        Integer amount = step.getAmount() != null ? step.getAmount() : 300;
+
+        // 随机分多次滚动
+        int steps = random.nextInt(3) + 2;
+        int stepAmount = amount / steps;
+
+        Page page = context.getPage();
+        for (int i = 0; i < steps; i++) {
+            int scrollAmt = "down".equals(direction) ? stepAmount : -stepAmount;
+            try {
+                page.evaluate("window.scrollBy(0, " + scrollAmt + ")");
+            } catch (com.microsoft.playwright.PlaywrightException e) {
+                // 页面导航导致执行上下文被销毁，这是正常现象
+                if (e.getMessage().contains("Execution context was destroyed") ||
+                    e.getMessage().contains("navigation")) {
+                    logger.warn("Scroll interrupted due to page navigation, continuing...");
+                    break;
+                }
+                throw e;
+            }
+            Thread.sleep((long) (random.nextDouble() * 200 + 100));
+        }
+
+        logger.info("Scrolled {} by {} pixels ({} steps)", direction, amount, steps);
+    }
+
+    private void executeHover(WorkflowStep step, WorkflowContext context) {
+        String selector = context.interpolate(step.getSelector());
+        logger.info("Hovering element: {}", selector);
+        Page page = context.getPage();
+        page.locator(selector).hover();
     }
 }

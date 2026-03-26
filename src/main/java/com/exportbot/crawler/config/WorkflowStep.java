@@ -29,6 +29,21 @@ public class WorkflowStep {
     private String watermark;
     private String customWatermarkText;
 
+    // waitForRandomTimeout parameters
+    private Integer min;
+    private Integer max;
+
+    // scroll parameters
+    private String direction;
+    private Integer amount;
+
+    // waitForResponse parameters
+    private String urlPattern;
+    private String jsonPath;
+
+    // evaluate parameters
+    private Boolean returnValue;
+
     // Nested steps for loop and conditional
     private List<WorkflowStep> steps;
 
@@ -80,6 +95,20 @@ public class WorkflowStep {
     public void setWatermark(String watermark) { this.watermark = watermark; }
     public String getCustomWatermarkText() { return customWatermarkText; }
     public void setCustomWatermarkText(String customWatermarkText) { this.customWatermarkText = customWatermarkText; }
+    public Integer getMin() { return min; }
+    public void setMin(Integer min) { this.min = min; }
+    public Integer getMax() { return max; }
+    public void setMax(Integer max) { this.max = max; }
+    public String getDirection() { return direction; }
+    public void setDirection(String direction) { this.direction = direction; }
+    public Integer getAmount() { return amount; }
+    public void setAmount(Integer amount) { this.amount = amount; }
+    public String getUrlPattern() { return urlPattern; }
+    public void setUrlPattern(String urlPattern) { this.urlPattern = urlPattern; }
+    public String getJsonPath() { return jsonPath; }
+    public void setJsonPath(String jsonPath) { this.jsonPath = jsonPath; }
+    public Boolean getReturnValue() { return returnValue; }
+    public void setReturnValue(Boolean returnValue) { this.returnValue = returnValue; }
     public List<WorkflowStep> getSteps() { return steps; }
     public void setSteps(List<WorkflowStep> steps) { this.steps = steps; }
     public Map<String, Object> getAdditionalProperties() { return additionalProperties; }

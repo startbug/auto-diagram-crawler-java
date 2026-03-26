@@ -1,24 +1,24 @@
 package com.exportbot.crawler.engine.export;
 
-import com.exportbot.crawler.engine.WorkflowContext;
-import com.microsoft.playwright.Download;
-import com.microsoft.playwright.Page;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.exportbot.crawler.engine.WorkflowContext;
+import com.microsoft.playwright.Download;
+import com.microsoft.playwright.Page;
 
 @Component
-public class PdfExportStrategy implements ExportStrategy {
+public class VisioExportStrategy implements ExportStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(PdfExportStrategy.class);
+    private static final Logger logger = LoggerFactory.getLogger(VisioExportStrategy.class);
 
     @Override
     public String getName() {
-        return "pdf";
+        return "visio";
     }
 
     @Override
@@ -35,15 +35,14 @@ public class PdfExportStrategy implements ExportStrategy {
     public void execute(WorkflowContext context, String quality, String watermark, String customWatermarkText) throws Exception {
         Page page = context.getPage();
 
-        // Click PDF format option (direct download, no preview dialog)
         Download download = page.waitForDownload(() -> {
-            page.locator("#header-export-menu > li:nth-child(5) > div > span.text").click();
+            page.locator("#header-export-menu > li:nth-child(4) > div > span.text").click();
         });
 
         Path downloadPath = Paths.get(context.getDownloadDir(), download.suggestedFilename());
         download.saveAs(downloadPath);
         context.addDownload(downloadPath.toString());
 
-        logger.info("PDF exported successfully: {}", downloadPath);
+        logger.info("SVG exported successfully: {}", downloadPath);
     }
 }
