@@ -26,7 +26,7 @@ public class WorkflowRunner {
         long startTime = System.currentTimeMillis();
         List<String> errors = new ArrayList<>();
 
-        logger.info("Starting workflow: {} with {} steps", workflow.getName(), workflow.getSteps().size());
+        logger.info("开始执行工作流: {} with {} steps", workflow.getName(), workflow.getSteps().size());
 
         // Merge external variables with workflow variables
         Map<String, Object> mergedVars = new java.util.HashMap<>(workflow.getVariables());
@@ -38,12 +38,12 @@ public class WorkflowRunner {
 
         for (WorkflowStep step : workflow.getSteps()) {
             try {
-                logger.debug("Executing step: {} (type: {})", step.getId(), step.getType());
+                logger.debug("执行步骤: {} (type: {})", step.getId(), step.getType());
                 stepExecutor.execute(step, context);
             } catch (Exception e) {
                 String msg = String.format("Step %s: %s", step.getId(), e.getMessage());
                 errors.add(msg);
-                logger.error("Step failed: {}", step.getId(), e);
+                logger.error("步骤执行失败: {}", step.getId(), e);
 
                 if ("abort".equals(step.getOnError())) {
                     logger.warn("Workflow aborted due to error in step: {}", step.getId());

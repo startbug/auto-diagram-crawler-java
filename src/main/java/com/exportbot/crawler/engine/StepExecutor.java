@@ -7,6 +7,7 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Response;
 import com.microsoft.playwright.options.WaitForSelectorState;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,7 +33,7 @@ public class StepExecutor {
 
     public void execute(WorkflowStep step, WorkflowContext context) throws Exception {
         String type = step.getType();
-        
+
         switch (type) {
             case "navigate" -> executeNavigate(step, context);
             case "click" -> executeClick(step, context);
@@ -118,19 +119,21 @@ public class StepExecutor {
 
         logger.info("Waiting for selector: {}", selector);
         Page page = context.getPage();
-        
+
         Locator.WaitForOptions options = new Locator.WaitForOptions()
                 .setState(WaitForSelectorState.VISIBLE);
         if (timeout != null) {
             options.setTimeout(timeout);
         }
-        
+
         page.locator(selector).waitFor(options);
     }
 
     private void executeWaitForTimeout(WorkflowStep step, WorkflowContext context) throws InterruptedException {
         Integer ms = step.getMs() != null ? step.getMs() : step.getTimeout();
-        if (ms == null) ms = 1000;
+        if (ms == null) {
+            ms = 1000;
+        }
 
         logger.info("Waiting for {} ms", ms);
         Thread.sleep(ms);
@@ -160,21 +163,21 @@ public class StepExecutor {
         // Playwright Java API: waitForResponse 使用 Runnable 回调
         Response[] responseHolder = new Response[1];
         page.waitForResponse(
-            resp -> {
-                if (resp.url().contains(urlPattern)) {
-                    responseHolder[0] = resp;
-                    return true;
+                resp -> {
+                    if (resp.url().contains(urlPattern)) {
+                        responseHolder[0] = resp;
+                        return true;
+                    }
+                    return false;
+                },
+                () -> {
+                    // 等待响应期间不需要额外操作
+                    try {
+                        Thread.sleep(timeout);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-                return false;
-            },
-            () -> {
-                // 等待响应期间不需要额外操作
-                try {
-                    Thread.sleep(timeout);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
         );
 
         Response response = responseHolder[0];
@@ -247,7 +250,6 @@ public class StepExecutor {
     }
 
     private void executeRenameDownload(WorkflowStep step, WorkflowContext context) {
-        String pattern = context.interpolate(step.getPattern());
         String lastDownload = context.getLastDownload();
 
         if (lastDownload == null) {
@@ -255,7 +257,9 @@ public class StepExecutor {
         }
 
         Path sourcePath = Paths.get(lastDownload);
-        Path targetPath = Paths.get(context.getDownloadDir(), pattern);
+        String extension = getFileExtension(lastDownload);
+        String newFilename = generateNewFilename(extension);
+        Path targetPath = Paths.get(context.getDownloadDir(), newFilename);
 
         try {
             java.nio.file.Files.move(sourcePath, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -264,6 +268,26 @@ public class StepExecutor {
         } catch (Exception e) {
             throw new RuntimeException("Failed to rename download", e);
         }
+    }
+
+    /**
+     * 获取文件扩展名（包含点号）
+     */
+    private String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < filename.length() - 1) {
+            return filename.substring(lastDotIndex);
+        }
+        return ""; // 没有扩展名
+    }
+
+    /**
+     * 生成新文件名：毫秒时间戳_UUID + 扩展名
+     */
+    private String generateNewFilename(String extension) {
+        long timestamp = System.currentTimeMillis();
+        String uuid = java.util.UUID.randomUUID().toString();
+        return timestamp + "_" + uuid + extension;
     }
 
     private void executeLog(WorkflowStep step, WorkflowContext context) {
@@ -333,9 +357,10 @@ public class StepExecutor {
         }
 
         // 获取元素位置
-        com.microsoft.playwright.JSHandle handle = locator.evaluateHandle("el => ({ x: el.getBoundingClientRect().x, y: el.getBoundingClientRect().y, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height })");
+        com.microsoft.playwright.JSHandle handle = locator.evaluateHandle(
+                "el => ({ x: el.getBoundingClientRect().x, y: el.getBoundingClientRect().y, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height })");
         Map<String, Object> box = (Map<String, Object>) handle.jsonValue();
-        
+
         if (box == null) {
             logger.warn("Element has no bounding box: {}", selector);
             return;
@@ -382,7 +407,7 @@ public class StepExecutor {
             } catch (com.microsoft.playwright.PlaywrightException e) {
                 // 页面导航导致执行上下文被销毁，这是正常现象
                 if (e.getMessage().contains("Execution context was destroyed") ||
-                    e.getMessage().contains("navigation")) {
+                        e.getMessage().contains("navigation")) {
                     logger.warn("Scroll interrupted due to page navigation, continuing...");
                     break;
                 }

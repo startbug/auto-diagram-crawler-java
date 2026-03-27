@@ -70,11 +70,13 @@ public class PipelineService {
             }
 
             // Ensure download directory
+            // TODO 从yml中读取路径，发到线上服务器后指定的是绝对路径
             String downloadDir = Paths.get(config.getBrowser().getDownloadDir()).toAbsolutePath().toString();
             java.io.File dir = new java.io.File(downloadDir);
             dir.mkdirs();
 
             // Load auth
+            // TODO 从yml中读取路径，发到线上服务器后指定的是绝对路径
             AuthData auth = authStore.load(config.getAuth().getStorePath());
 
             // Launch browser

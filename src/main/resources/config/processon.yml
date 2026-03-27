@@ -318,6 +318,10 @@ steps:
     max: 5000
     description: "下载完成后随机等待"
 
+  - id: rename-downloaded-file
+    type: renameDownload
+    description: "重命名下载文件为：毫秒时间戳+uuid+文件后缀"
+
   - id: scroll-final
     type: scroll
     direction: down

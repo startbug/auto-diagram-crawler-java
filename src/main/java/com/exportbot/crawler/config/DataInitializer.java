@@ -10,9 +10,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -32,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("Initializing default workflow: processon");
 
             // Try to load from classpath (resources directory)
-            ClassPathResource resource = new ClassPathResource("config/processon.yaml");
+            ClassPathResource resource = new ClassPathResource("config/processon.yml");
 
             if (resource.exists()) {
                 try {

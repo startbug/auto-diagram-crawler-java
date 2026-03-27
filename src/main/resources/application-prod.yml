@@ -4,7 +4,3 @@ crawler:
   browser:
     headless: true
     slowMo: 0
-
-logging:
-  level:
-    com.exportbot.crawler: WARN

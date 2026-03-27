@@ -16,7 +16,8 @@ spring:
     properties:
       org.quartz.scheduler.instanceName: CrawlerScheduler
       org.quartz.threadPool.threadCount: 2
-
+  profiles:
+    active: dev
 crawler:
   server:
     port: 3000
@@ -33,11 +34,13 @@ crawler:
   schedule:
     enabled: false
     cron: "0 9 * * 1"
-  delivery: []
+  delivery:
+    - type: aliyun-oss
+      enabled: true
+      options:
+        region:
+        accessKeyId:
+        accessKeySecret:
+        bucket:
+        prefix: exports/{{date}}/
 
-logging:
-  level:
-    com.exportbot.crawler: INFO
-    org.springframework.web: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

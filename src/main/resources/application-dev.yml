@@ -1,0 +1,6 @@
+crawler:
+  server:
+    host: 0.0.0.0
+  browser:
+    headless: false
+    slowMo: 0
