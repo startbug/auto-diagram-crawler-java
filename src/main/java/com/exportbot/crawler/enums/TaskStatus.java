@@ -6,11 +6,11 @@ import lombok.Getter;
 public enum TaskStatus {
 
     PENDING(0, "待执行"),
-    RUNNING(1, "执行中"),
-    SUCCESS(2, "执行成功"),
-    FAILED(3, "执行异常"),
-    DELIVERING(4, "待交付"),
-    DELIVERED(5, "已交付");
+    RUNNING(100, "执行中"),
+    SUCCESS(200, "执行成功"),
+    FAILED(300, "执行异常"),
+    DELIVERING(400, "待交付"),
+    DELIVERED(500, "已交付");
 
     private final int code;
     private final String desc;
