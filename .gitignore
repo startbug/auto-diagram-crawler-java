@@ -39,3 +39,8 @@ data/
 config/workflows/*.yaml
 !config/workflows/example-export.yaml
 .qoder
+
+### Environment ###
+.env
+.env.local
+.env.*.local

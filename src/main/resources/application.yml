@@ -7,10 +7,18 @@ spring:
   main:
     web-application-type: servlet
   datasource:
-    url:
-    username:
-    password:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/auto_diagram?useSSL=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.exportbot.crawler.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   quartz:
     job-store-type: memory
     properties:
@@ -36,11 +44,20 @@ crawler:
     cron: "0 9 * * 1"
   delivery:
     - type: aliyun-oss
-      enabled: true
+      enabled: ${OSS_ENABLED:true}
       options:
-        region:
-        accessKeyId:
-        accessKeySecret:
-        bucket:
-        prefix: exports/{{date}}/
-
+        region: ${OSS_REGION:cn-beijing}
+        accessKeyId: ${OSS_ACCESS_KEY_ID:}
+        accessKeySecret: ${OSS_ACCESS_KEY_SECRET:}
+        bucket: ${OSS_BUCKET:}
+        prefix: ${OSS_PREFIX:exports/{{date}}/}
+    - type: smtp
+      enabled: ${SMTP_ENABLED:true}
+      options:
+        from: ${SMTP_FROM:}
+        to: ${SMTP_TO:}
+        host: ${SMTP_HOST:smtp.163.com}
+        port: ${SMTP_PORT:465}
+        user: ${SMTP_USER:}
+        pass: ${SMTP_PASS:}
+        subject: ${SMTP_SUBJECT:"ProcessOn 图片自动导出通知"}
