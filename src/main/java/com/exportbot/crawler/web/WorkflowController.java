@@ -28,11 +28,14 @@ public class WorkflowController {
         var workflows = workflowRepository.findAll().stream()
             .map(w -> {
                 Map<String, Object> map = new HashMap<>();
-                map.put("id", w.id());
-                map.put("code", w.code());
-                map.put("name", w.name());
-                map.put("description", w.description());
-                map.put("updatedAt", w.updatedAt());
+                map.put("id", w.getId());
+                map.put("code", w.getCode());
+                map.put("name", w.getName());
+                map.put("description", w.getDescription());
+                map.put("createTime", w.getCreateTime());
+                map.put("modifyTime", w.getModifyTime());
+                map.put("creator", w.getCreator());
+                map.put("modifier", w.getModifier());
                 return map;
             })
             .collect(Collectors.toList());
@@ -44,12 +47,15 @@ public class WorkflowController {
         var workflow = workflowRepository.findByCode(code);
         if (workflow.isPresent()) {
             Map<String, Object> map = new HashMap<>();
-            map.put("id", workflow.get().id());
-            map.put("code", workflow.get().code());
-            map.put("name", workflow.get().name());
-            map.put("description", workflow.get().description());
-            map.put("content", workflow.get().content());
-            map.put("updatedAt", workflow.get().updatedAt());
+            map.put("id", workflow.get().getId());
+            map.put("code", workflow.get().getCode());
+            map.put("name", workflow.get().getName());
+            map.put("description", workflow.get().getDescription());
+            map.put("content", workflow.get().getContent());
+            map.put("createTime", workflow.get().getCreateTime());
+            map.put("modifyTime", workflow.get().getModifyTime());
+            map.put("creator", workflow.get().getCreator());
+            map.put("modifier", workflow.get().getModifier());
             return ResponseEntity.ok(map);
         }
         return ResponseEntity.notFound().build();

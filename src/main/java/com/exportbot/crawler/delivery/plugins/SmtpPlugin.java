@@ -11,9 +11,11 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class SmtpPlugin implements DeliveryPlugin {
 
@@ -41,11 +43,19 @@ public class SmtpPlugin implements DeliveryPlugin {
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
+        
+        // 根据端口判断是否启用 SSL
+        int port = getInt(options, "port", 587);
+        if (port == 465) {
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.trust", getString(options, "host"));
+        } else {
+            props.put("mail.smtp.starttls.enable", "true");
+        }
 
         this.mailSender = sender;
         this.from = getString(options, "from");
-        this.to = (List<String>) options.get("to");
+        this.to = Arrays.stream(String.valueOf(options.get("to")).split(",")).collect(Collectors.toList());
         this.subject = getString(options, "subject", "Export - {{date}}");
     }
 
