@@ -1,7 +1,9 @@
 package com.exportbot.crawler.web;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.exportbot.crawler.dto.SaveWorkflowRequestDTO;
 import com.exportbot.crawler.entity.WorkflowEntity;
+import com.exportbot.crawler.entity.common.R;
 import com.exportbot.crawler.repository.WorkflowRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +28,7 @@ public class WorkflowController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> listWorkflows() {
+    public ResponseEntity<R<List<Map<String, Object>>>> listWorkflows() {
         var workflows = workflowRepository.findAll().stream()
             .map(w -> {
                 Map<String, Object> map = new HashMap<>();
@@ -41,11 +43,11 @@ public class WorkflowController {
                 return map;
             })
             .collect(Collectors.toList());
-        return ResponseEntity.ok(workflows);
+        return ResponseEntity.ok(R.success(workflows));
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<?> getWorkflow(@PathVariable String code) {
+    public ResponseEntity<R<Map<String, Object>>> getWorkflow(@PathVariable String code) {
         var workflow = workflowRepository.findByCode(code);
         if (workflow.isPresent()) {
             Map<String, Object> map = new HashMap<>();
@@ -58,47 +60,40 @@ public class WorkflowController {
             map.put("modifyTime", workflow.get().getModifyTime());
             map.put("creator", workflow.get().getCreator());
             map.put("modifier", workflow.get().getModifier());
-            return ResponseEntity.ok(map);
+            return ResponseEntity.ok(R.success(map));
         }
         return ResponseEntity.notFound().build();
     }
 
     @PostMapping
-    public ResponseEntity<?> saveWorkflow(@RequestBody SaveRequest request) {
+    public ResponseEntity<R<Void>> saveWorkflow(@RequestBody SaveWorkflowRequestDTO request) {
         try {
-            workflowRepository.save(request.code, request.name, request.description, request.content);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Workflow saved"));
+            workflowRepository.save(request.getCode(), request.getName(), request.getDescription(), request.getContent());
+            return ResponseEntity.ok(R.success(null));
         } catch (Exception e) {
             logger.error("Failed to save workflow", e);
             return ResponseEntity.internalServerError()
-                .body(Map.of("success", false, "error", e.getMessage()));
+                .body(R.error(e.getMessage()));
         }
     }
 
     @DeleteMapping("/{code}")
-    public ResponseEntity<?> deleteWorkflow(@PathVariable String code) {
+    public ResponseEntity<R<Void>> deleteWorkflow(@PathVariable String code) {
         try {
             workflowRepository.delete(code);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Workflow deleted"));
+            return ResponseEntity.ok(R.success(null));
         } catch (Exception e) {
             logger.error("Failed to delete workflow", e);
             return ResponseEntity.internalServerError()
-                .body(Map.of("success", false, "error", e.getMessage()));
+                .body(R.error(e.getMessage()));
         }
     }
 
     @GetMapping("/page")
-    public ResponseEntity<IPage<WorkflowEntity>> listWorkflowsByPage(
+    public ResponseEntity<R<IPage<WorkflowEntity>>> listWorkflowsByPage(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(workflowRepository.findPage(pageNum, pageSize, keyword));
-    }
-
-    public static class SaveRequest {
-        public String code;
-        public String name;
-        public String description;
-        public String content;
+        return ResponseEntity.ok(R.success(workflowRepository.findPage(pageNum, pageSize, keyword)));
     }
 }

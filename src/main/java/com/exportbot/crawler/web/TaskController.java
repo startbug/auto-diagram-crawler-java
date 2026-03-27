@@ -1,7 +1,12 @@
 package com.exportbot.crawler.web;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.exportbot.crawler.dto.CreateTaskRequestDTO;
+import com.exportbot.crawler.dto.CreateTaskResponseDTO;
+import com.exportbot.crawler.dto.OssUrlRequestDTO;
+import com.exportbot.crawler.dto.OssUrlResponseDTO;
 import com.exportbot.crawler.entity.TaskEntity;
+import com.exportbot.crawler.entity.common.R;
 import com.exportbot.crawler.repository.TaskRepository;
 import com.exportbot.crawler.service.TaskService;
 import org.slf4j.Logger;
@@ -10,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -27,105 +31,103 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<IPage<TaskEntity>> listTasks(
+    public ResponseEntity<R<IPage<TaskEntity>>> listTasks(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) Long orderId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String email) {
-        return ResponseEntity.ok(taskRepository.findPage(pageNum, pageSize, orderId, status, email));
+        return ResponseEntity.ok(R.success(taskRepository.findPage(pageNum, pageSize, orderId, status, email)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTask(@PathVariable Long id) {
+    public ResponseEntity<R<TaskEntity>> getTask(@PathVariable Long id) {
         return taskRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(entity -> ResponseEntity.ok(R.success(entity)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<?> createTask(@RequestBody CreateTaskRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<R<CreateTaskResponseDTO>> createTask(@RequestBody CreateTaskRequestDTO request, HttpServletRequest httpRequest) {
         try {
             String userIp = getClientIp(httpRequest);
 
             TaskEntity task = taskService.createTask(
-                    request.orderId,
-                    request.email,
+                    request.getOrderId(),
+                    request.getEmail(),
                     userIp,
-                    request.fileUrl,
-                    request.format,
-                    request.quality,
-                    request.watermarkType,
-                    request.watermarkText
+                    request.getFileUrl(),
+                    request.getFormat(),
+                    request.getQuality(),
+                    request.getWatermarkType(),
+                    request.getWatermarkText()
             );
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "任务创建成功",
-                    "taskId", task.getId(),
-                    "uuid", task.getUuid()
-            ));
+            CreateTaskResponseDTO response = new CreateTaskResponseDTO();
+            response.setTaskId(task.getId());
+            response.setUuid(task.getUuid());
+            
+            return ResponseEntity.ok(R.success(response));
         } catch (RuntimeException e) {
             logger.warn("Failed to create task: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to create task", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @PostMapping("/{id}/reset")
-    public ResponseEntity<?> resetTask(@PathVariable Long id) {
+    public ResponseEntity<R<Void>> resetTask(@PathVariable Long id) {
         try {
             boolean success = taskService.resetTask(id);
             if (success) {
-                return ResponseEntity.ok(Map.of("success", true, "message", "任务重置成功"));
+                return ResponseEntity.ok(R.success(null));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "任务重置失败"));
+                        .body(R.error("任务重置失败"));
             }
         } catch (RuntimeException e) {
             logger.warn("Failed to reset task: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to reset task", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @PostMapping("/{id}/oss-url")
-    public ResponseEntity<?> generateOssUrl(@PathVariable Long id, @RequestBody OssUrlRequest request) {
+    public ResponseEntity<R<OssUrlResponseDTO>> generateOssUrl(@PathVariable Long id, @RequestBody OssUrlRequestDTO request) {
         try {
             TaskEntity task = taskRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("任务不存在"));
 
             if (task.getOssUrl() == null || task.getOssUrl().isEmpty()) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "任务尚未生成OSS文件"));
+                        .body(R.error("任务尚未生成 OSS 文件"));
             }
 
-            // TODO: 调用OSS服务生成带签名的URL
-            // 这里先返回原始URL，实际需要调用阿里云OSS SDK生成临时签名URL
-            int expireHours = request.expireHours != null ? request.expireHours : 1;
+            // TODO: 调用 OSS 服务生成带签名的 URL
+            // 这里先返回原始 URL，实际需要调用阿里云 OSS SDK 生成临时签名 URL
+            int expireHours = request.getExpireHours() != null ? request.getExpireHours() : 1;
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "ossUrl", task.getOssUrl(),
-                    "expireHours", expireHours,
-                    "message", "OSS URL生成成功（有效期" + expireHours + "小时）"
-            ));
+            OssUrlResponseDTO response = new OssUrlResponseDTO();
+            response.setOssUrl(task.getOssUrl());
+            response.setExpireHours(expireHours);
+            
+            return ResponseEntity.ok(R.success(response));
         } catch (RuntimeException e) {
             logger.warn("Failed to generate OSS URL: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to generate OSS URL", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
@@ -140,24 +142,10 @@ public class TaskController {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        // 多个代理情况，取第一个IP
+        // 多个代理情况，取第一个 IP
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
         return ip;
-    }
-
-    public static class CreateTaskRequest {
-        public Long orderId;
-        public String email;
-        public String fileUrl;
-        public String format;
-        public String quality;
-        public String watermarkType;
-        public String watermarkText;
-    }
-
-    public static class OssUrlRequest {
-        public Integer expireHours;
     }
 }

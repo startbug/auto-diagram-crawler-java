@@ -1,7 +1,9 @@
 package com.exportbot.crawler.web;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.exportbot.crawler.dto.UserInfoDTO;
 import com.exportbot.crawler.entity.SysUserEntity;
+import com.exportbot.crawler.entity.common.R;
 import com.exportbot.crawler.repository.SysUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,31 +25,28 @@ public class SysUserController {
     }
 
     @GetMapping
-    public ResponseEntity<IPage<SysUserEntity>> listUsers(
+    public ResponseEntity<R<IPage<SysUserEntity>>> listUsers(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(sysUserRepository.findPage(pageNum, pageSize, keyword));
+        return ResponseEntity.ok(R.success(sysUserRepository.findPage(pageNum, pageSize, keyword)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id) {
+    public ResponseEntity<R<UserInfoDTO>> getUser(@PathVariable Long id) {
         return sysUserRepository.findById(id)
-                .map(user -> {
-                    // 不返回密码
-                    user.setPassword(null);
-                    return ResponseEntity.ok(user);
-                })
+                .map(this::convertToDTO)
+                .map(dto -> ResponseEntity.ok(R.success(dto)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserRequest request) {
+    public ResponseEntity<R<Void>> createUser(@RequestBody UserRequest request) {
         try {
             // 检查用户名是否已存在
             if (sysUserRepository.findByUsername(request.username).isPresent()) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "用户名已存在"));
+                        .body(R.error("用户名已存在"));
             }
 
             SysUserEntity user = new SysUserEntity();
@@ -60,16 +57,16 @@ public class SysUserController {
             user.setStatus(request.status != null ? request.status : 1);
 
             sysUserRepository.save(user);
-            return ResponseEntity.ok(Map.of("success", true, "message", "用户创建成功"));
+            return ResponseEntity.ok(R.success(null));
         } catch (Exception e) {
             logger.error("Failed to create user", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserRequest request) {
+    public ResponseEntity<R<Void>> updateUser(@PathVariable Long id, @RequestBody UserRequest request) {
         try {
             SysUserEntity user = sysUserRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -77,7 +74,7 @@ public class SysUserController {
             // 超级管理员不能被修改角色
             if ("SUPER_ADMIN".equals(user.getRole()) && request.role != null && !"SUPER_ADMIN".equals(request.role)) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "超级管理员角色不能修改"));
+                        .body(R.error("超级管理员角色不能修改"));
             }
 
             if (request.nickname != null) {
@@ -94,16 +91,16 @@ public class SysUserController {
             }
 
             sysUserRepository.save(user);
-            return ResponseEntity.ok(Map.of("success", true, "message", "用户更新成功"));
+            return ResponseEntity.ok(R.success(null));
         } catch (Exception e) {
             logger.error("Failed to update user", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<R<Void>> deleteUser(@PathVariable Long id) {
         try {
             SysUserEntity user = sysUserRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -111,16 +108,26 @@ public class SysUserController {
             // 超级管理员不能删除
             if ("SUPER_ADMIN".equals(user.getRole())) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "超级管理员不能删除"));
+                        .body(R.error("超级管理员不能删除"));
             }
 
             sysUserRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("success", true, "message", "用户删除成功"));
+            return ResponseEntity.ok(R.success(null));
         } catch (Exception e) {
             logger.error("Failed to delete user", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
+    }
+
+    private UserInfoDTO convertToDTO(SysUserEntity entity) {
+        UserInfoDTO dto = new UserInfoDTO();
+        dto.setId(entity.getId());
+        dto.setUsername(entity.getUsername());
+        dto.setNickname(entity.getNickname());
+        dto.setRole(entity.getRole());
+        dto.setStatus(entity.getStatus());
+        return dto;
     }
 
     public static class UserRequest {

@@ -1,7 +1,9 @@
 package com.exportbot.crawler.web;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.exportbot.crawler.dto.SchedulerConfigRequestDTO;
 import com.exportbot.crawler.entity.SchedulerConfigEntity;
+import com.exportbot.crawler.entity.common.R;
 import com.exportbot.crawler.repository.SchedulerConfigRepository;
 import com.exportbot.crawler.scheduler.ExportJob;
 import org.quartz.*;
@@ -9,8 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/scheduler/configs")
@@ -27,40 +27,40 @@ public class SchedulerConfigController {
     }
 
     @GetMapping
-    public ResponseEntity<IPage<SchedulerConfigEntity>> listConfigs(
+    public ResponseEntity<R<IPage<SchedulerConfigEntity>>> listConfigs(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String jobName) {
-        return ResponseEntity.ok(schedulerConfigRepository.findPage(pageNum, pageSize, jobName));
+        return ResponseEntity.ok(R.success(schedulerConfigRepository.findPage(pageNum, pageSize, jobName)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getConfig(@PathVariable Long id) {
+    public ResponseEntity<R<SchedulerConfigEntity>> getConfig(@PathVariable Long id) {
         return schedulerConfigRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(entity -> ResponseEntity.ok(R.success(entity)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<?> createConfig(@RequestBody ConfigRequest request) {
+    public ResponseEntity<R<SchedulerConfigEntity>> createConfig(@RequestBody SchedulerConfigRequestDTO request) {
         try {
             // 校验 Cron 表达式
-            if (!CronExpression.isValidExpression(request.cronExpression)) {
+            if (!CronExpression.isValidExpression(request.getCronExpression())) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "无效的 Cron 表达式"));
+                        .body(R.error("无效的 Cron 表达式"));
             }
 
             // 检查任务名称是否已存在
-            if (schedulerConfigRepository.findByJobName(request.jobName).isPresent()) {
+            if (schedulerConfigRepository.findByJobName(request.getJobName()).isPresent()) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "任务名称已存在"));
+                        .body(R.error("任务名称已存在"));
             }
 
             SchedulerConfigEntity config = new SchedulerConfigEntity();
-            config.setJobName(request.jobName);
-            config.setCronExpression(request.cronExpression);
-            config.setEnabled(request.enabled != null ? request.enabled : 1);
-            config.setDescription(request.description);
+            config.setJobName(request.getJobName());
+            config.setCronExpression(request.getCronExpression());
+            config.setEnabled(request.getEnabled() != null ? request.getEnabled() : 1);
+            config.setDescription(request.getDescription());
 
             schedulerConfigRepository.save(config);
 
@@ -68,35 +68,35 @@ public class SchedulerConfigController {
             if (config.getEnabled() == 1) {
                 createOrUpdateQuartzJob(config);
             }
-
-            return ResponseEntity.ok(Map.of("success", true, "message", "配置创建成功", "id", config.getId()));
+            
+            return ResponseEntity.ok(R.success(config));
         } catch (Exception e) {
             logger.error("Failed to create scheduler config", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateConfig(@PathVariable Long id, @RequestBody ConfigRequest request) {
+    public ResponseEntity<R<Void>> updateConfig(@PathVariable Long id, @RequestBody SchedulerConfigRequestDTO request) {
         try {
             SchedulerConfigEntity config = schedulerConfigRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("配置不存在"));
 
             // 校验 Cron 表达式
-            if (request.cronExpression != null && !CronExpression.isValidExpression(request.cronExpression)) {
+            if (request.getCronExpression() != null && !CronExpression.isValidExpression(request.getCronExpression())) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "无效的 Cron 表达式"));
+                        .body(R.error("无效的 Cron 表达式"));
             }
 
-            if (request.cronExpression != null) {
-                config.setCronExpression(request.cronExpression);
+            if (request.getCronExpression() != null) {
+                config.setCronExpression(request.getCronExpression());
             }
-            if (request.enabled != null) {
-                config.setEnabled(request.enabled);
+            if (request.getEnabled() != null) {
+                config.setEnabled(request.getEnabled());
             }
-            if (request.description != null) {
-                config.setDescription(request.description);
+            if (request.getDescription() != null) {
+                config.setDescription(request.getDescription());
             }
 
             schedulerConfigRepository.save(config);
@@ -104,20 +104,20 @@ public class SchedulerConfigController {
             // 更新 Quartz 任务
             createOrUpdateQuartzJob(config);
 
-            return ResponseEntity.ok(Map.of("success", true, "message", "配置更新成功"));
+            return ResponseEntity.ok(R.success(null));
         } catch (RuntimeException e) {
             logger.warn("Failed to update scheduler config: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to update scheduler config", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteConfig(@PathVariable Long id) {
+    public ResponseEntity<R<Void>> deleteConfig(@PathVariable Long id) {
         try {
             SchedulerConfigEntity config = schedulerConfigRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("配置不存在"));
@@ -127,20 +127,20 @@ public class SchedulerConfigController {
 
             schedulerConfigRepository.deleteById(id);
 
-            return ResponseEntity.ok(Map.of("success", true, "message", "配置删除成功"));
+            return ResponseEntity.ok(R.success(null));
         } catch (RuntimeException e) {
             logger.warn("Failed to delete scheduler config: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to delete scheduler config", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
     @PostMapping("/{id}/trigger")
-    public ResponseEntity<?> triggerJob(@PathVariable Long id) {
+    public ResponseEntity<R<Void>> triggerJob(@PathVariable Long id) {
         try {
             SchedulerConfigEntity config = schedulerConfigRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("配置不存在"));
@@ -150,19 +150,19 @@ public class SchedulerConfigController {
             if (scheduler.checkExists(jobKey)) {
                 scheduler.triggerJob(jobKey);
                 logger.info("Job triggered manually: {}", config.getJobName());
-                return ResponseEntity.ok(Map.of("success", true, "message", "任务已触发"));
+                return ResponseEntity.ok(R.success(null));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "任务不存在，请先启用配置"));
+                        .body(R.error("任务不存在，请先启用配置"));
             }
         } catch (RuntimeException e) {
             logger.warn("Failed to trigger job: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to trigger job", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+                    .body(R.error(e.getMessage()));
         }
     }
 
@@ -206,10 +206,5 @@ public class SchedulerConfigController {
         }
     }
 
-    public static class ConfigRequest {
-        public String jobName;
-        public String cronExpression;
-        public Integer enabled;
-        public String description;
-    }
+
 }
