@@ -11,6 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
@@ -48,16 +52,13 @@ public class OrderController {
             OrderEntity order = orderRepository.findByOrderNo(String.valueOf(request.getBizOrderId()))
                     .orElse(new OrderEntity());
 
-            order.setOrderNo(String.valueOf(request.getBizOrderId()));
-            order.setItemId(request.getItemId() != null ? Long.valueOf(request.getItemId()) : null);
-            order.setOrderStatus(request.getOrderStatus());
-            order.setSellerId(request.getSellerId() != null ? Long.valueOf(request.getSellerId()) : null);
-
-            // TODO: originalJson 字段需要从 DTO 中传入完整的 JSON
-            // order.setOriginalJson(request.toJson());
-
-            // 新订单设置默认导出次数
+            // 如果是新订单，生成 UUID
             if (order.getId() == null) {
+                order.setUuid(UUID.randomUUID().toString().replace("-", ""));
+                order.setOrderNo(String.valueOf(request.getBizOrderId()));
+                order.setItemId(request.getItemId() != null ? Long.valueOf(request.getItemId()) : null);
+                order.setOrderStatus(request.getOrderStatus());
+                order.setSellerId(request.getSellerId() != null ? Long.valueOf(request.getSellerId()) : null);
                 order.setExportCount(1);
                 order.setUsedCount(0);
             }
@@ -73,5 +74,20 @@ public class OrderController {
             return ResponseEntity.internalServerError()
                     .body(R.error(e.getMessage()));
         }
+    }
+
+    /**
+     * 根据订单 ID 获取落地页链接（用于测试）
+     */
+    @GetMapping("/{id}/entry-url")
+    public ResponseEntity<R<Map<String, String>>> getEntryUrl(@PathVariable Long id) {
+        return orderRepository.findById(id)
+                .map(order -> {
+                    Map<String, String> data = new HashMap<>();
+                    data.put("uuid", order.getUuid());
+                    data.put("entryUrl", "http://localhost:5174/?uuid=" + order.getUuid());
+                    return ResponseEntity.ok(R.success(data));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

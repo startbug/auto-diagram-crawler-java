@@ -17,6 +17,9 @@ public class OrderEntity {
     private Long id;
 
     // === 业务字段 ===
+    @TableField("uuid")
+    private String uuid;
+
     @TableField("order_no")
     private String orderNo;
 
