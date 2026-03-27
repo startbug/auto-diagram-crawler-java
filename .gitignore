@@ -38,3 +38,4 @@ data/
 ### Config ###
 config/workflows/*.yaml
 !config/workflows/example-export.yaml
+.qoder
