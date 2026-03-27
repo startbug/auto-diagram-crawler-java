@@ -68,7 +68,7 @@ public class SmtpPlugin implements DeliveryPlugin {
             helper.setFrom(from);
             helper.setTo(to.toArray(new String[0]));
             helper.setSubject(interpolate(subject, metadata));
-            helper.setText("Exported files attached.");
+            helper.setText("您好！\n\n您本次的图片导出任务已完成，请查看附件。");
 
             for (String filePath : files) {
                 File file = new File(filePath);

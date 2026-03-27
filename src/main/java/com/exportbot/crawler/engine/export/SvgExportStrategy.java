@@ -1,6 +1,7 @@
 package com.exportbot.crawler.engine.export;
 
 import com.exportbot.crawler.engine.WorkflowContext;
+import com.exportbot.crawler.enums.ExportFormat;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Page;
 import org.slf4j.Logger;
@@ -17,7 +18,7 @@ public class SvgExportStrategy implements ExportStrategy {
 
     @Override
     public String getName() {
-        return "svg";
+        return ExportFormat.SVG.getCode();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.exportbot.crawler.engine.export;
 
 import com.exportbot.crawler.engine.WorkflowContext;
+import com.exportbot.crawler.enums.ExportFormat;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -19,7 +20,7 @@ public class PngExportStrategy implements ExportStrategy {
 
     @Override
     public String getName() {
-        return "png";
+        return ExportFormat.PNG.getCode();
     }
 
     @Override

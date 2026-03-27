@@ -1,6 +1,7 @@
 package com.exportbot.crawler.delivery;
 
 import com.exportbot.crawler.config.AppConfig;
+import com.exportbot.crawler.enums.DeliveryPluginType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -77,14 +78,15 @@ public class DeliveryManager {
     }
 
     private DeliveryPlugin createPlugin(String type) {
-        return switch (type) {
-            case "smtp" -> new com.exportbot.crawler.delivery.plugins.SmtpPlugin();
-            case "aliyun-oss" -> new com.exportbot.crawler.delivery.plugins.AliyunOssPlugin();
-            default -> {
-                logger.error("Unknown delivery plugin type: {}", type);
-                yield null;
-            }
-        };
+        return DeliveryPluginType.getByCode(type)
+                .map(pluginType -> switch (pluginType) {
+                    case SMTP -> new com.exportbot.crawler.delivery.plugins.SmtpPlugin();
+                    case ALIYUN_OSS -> new com.exportbot.crawler.delivery.plugins.AliyunOssPlugin();
+                })
+                .orElseGet(() -> {
+                    logger.error("Unknown delivery plugin type: {}", type);
+                    return null;
+                });
     }
 
     public void shutdown() {

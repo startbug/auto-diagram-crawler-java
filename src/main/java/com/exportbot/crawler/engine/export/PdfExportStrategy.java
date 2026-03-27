@@ -1,6 +1,7 @@
 package com.exportbot.crawler.engine.export;
 
 import com.exportbot.crawler.engine.WorkflowContext;
+import com.exportbot.crawler.enums.ExportFormat;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Page;
 
@@ -18,7 +19,7 @@ public class PdfExportStrategy implements ExportStrategy {
 
     @Override
     public String getName() {
-        return "pdf";
+        return ExportFormat.PDF.getCode();
     }
 
     @Override

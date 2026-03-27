@@ -2,6 +2,7 @@ package com.exportbot.crawler.engine;
 
 import com.exportbot.crawler.config.WorkflowStep;
 import com.exportbot.crawler.engine.export.ExportStrategyFactory;
+import com.exportbot.crawler.enums.StepType;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -33,27 +34,28 @@ public class StepExecutor {
 
     public void execute(WorkflowStep step, WorkflowContext context) throws Exception {
         String type = step.getType();
+        StepType stepType = StepType.getByCode(type)
+                .orElseThrow(() -> new UnsupportedOperationException("Unknown step type: " + type));
 
-        switch (type) {
-            case "navigate" -> executeNavigate(step, context);
-            case "click" -> executeClick(step, context);
-            case "fill" -> executeFill(step, context);
-            case "select" -> executeSelect(step, context);
-            case "waitForSelector" -> executeWaitForSelector(step, context);
-            case "waitForTimeout" -> executeWaitForTimeout(step, context);
-            case "waitForRandomTimeout" -> executeWaitForRandomTimeout(step, context);
-            case "waitForResponse" -> executeWaitForResponse(step, context);
-            case "evaluate" -> executeEvaluate(step, context);
-            case "screenshot" -> executeScreenshot(step, context);
-            case "renameDownload" -> executeRenameDownload(step, context);
-            case "log" -> executeLog(step, context);
-            case "loop" -> executeLoop(step, context);
-            case "conditional" -> executeConditional(step, context);
-            case "exportWithStrategy" -> executeExportWithStrategy(step, context);
-            case "moveMouse" -> executeMoveMouse(step, context);
-            case "scroll" -> executeScroll(step, context);
-            case "hover" -> executeHover(step, context);
-            default -> throw new UnsupportedOperationException("Unknown step type: " + type);
+        switch (stepType) {
+            case NAVIGATE -> executeNavigate(step, context);
+            case CLICK -> executeClick(step, context);
+            case FILL -> executeFill(step, context);
+            case SELECT -> executeSelect(step, context);
+            case WAIT_FOR_SELECTOR -> executeWaitForSelector(step, context);
+            case WAIT_FOR_TIMEOUT -> executeWaitForTimeout(step, context);
+            case WAIT_FOR_RANDOM_TIMEOUT -> executeWaitForRandomTimeout(step, context);
+            case WAIT_FOR_RESPONSE -> executeWaitForResponse(step, context);
+            case EVALUATE -> executeEvaluate(step, context);
+            case SCREENSHOT -> executeScreenshot(step, context);
+            case RENAME_DOWNLOAD -> executeRenameDownload(step, context);
+            case LOG -> executeLog(step, context);
+            case LOOP -> executeLoop(step, context);
+            case CONDITIONAL -> executeConditional(step, context);
+            case EXPORT_WITH_STRATEGY -> executeExportWithStrategy(step, context);
+            case MOVE_MOUSE -> executeMoveMouse(step, context);
+            case SCROLL -> executeScroll(step, context);
+            case HOVER -> executeHover(step, context);
         }
     }
 

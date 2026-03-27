@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.exportbot.crawler.engine.WorkflowContext;
+import com.exportbot.crawler.enums.ExportFormat;
 import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Page;
 
@@ -18,7 +19,7 @@ public class PosExportStrategy implements ExportStrategy {
 
     @Override
     public String getName() {
-        return "pos";
+        return ExportFormat.POS.getCode();
     }
 
     @Override
