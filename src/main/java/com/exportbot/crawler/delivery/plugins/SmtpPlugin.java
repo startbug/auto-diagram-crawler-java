@@ -23,7 +23,6 @@ public class SmtpPlugin implements DeliveryPlugin {
 
     private JavaMailSender mailSender;
     private String from;
-    private List<String> to;
     private String subject;
 
     @Override
@@ -55,18 +54,32 @@ public class SmtpPlugin implements DeliveryPlugin {
 
         this.mailSender = sender;
         this.from = getString(options, "from");
-        this.to = Arrays.stream(String.valueOf(options.get("to")).split(",")).collect(Collectors.toList());
-        this.subject = getString(options, "subject", "Export - {{date}}");
+        this.subject = getString(options, "subject", "ProcessOn 图片自动导出通知");
     }
 
     @Override
     public DeliveryResult deliver(List<String> files, DeliveryMetadata metadata) {
         try {
+            // 从 metadata 中获取收件人邮箱列表（支持多个，逗号分隔）
+            Object toObj = metadata.variables().get("emailRecipients");
+            if (toObj == null) {
+                throw new IllegalArgumentException("邮件接收人 (emailRecipients) 不能为空");
+            }
+            
+            List<String> toList = Arrays.stream(String.valueOf(toObj).split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+            
+            if (toList.isEmpty()) {
+                throw new IllegalArgumentException("邮件接收人列表不能为空");
+            }
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(from);
-            helper.setTo(to.toArray(new String[0]));
+            helper.setTo(toList.toArray(new String[0]));
             helper.setSubject(interpolate(subject, metadata));
             helper.setText("您好！\n\n您本次的图片导出任务已完成，请查看附件。");
 
@@ -78,7 +91,7 @@ public class SmtpPlugin implements DeliveryPlugin {
             }
 
             mailSender.send(message);
-            logger.info("Email sent successfully to: {}", to);
+            logger.info("Email sent successfully to: {}", toList);
 
             return new DeliveryResult(true, getName(), "Email sent successfully", null);
         } catch (MessagingException e) {

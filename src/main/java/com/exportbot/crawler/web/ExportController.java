@@ -39,6 +39,10 @@ public class ExportController {
                 if (request.format != null) variables.put("format", request.format);
                 if (request.quality != null) variables.put("quality", request.quality);
                 if (request.watermark != null) variables.put("watermark", request.watermark);
+                // 传入邮件接收人列表（支持多个，逗号分隔）
+                if (request.emailRecipients != null && !request.emailRecipients.isEmpty()) {
+                    variables.put("emailRecipients", request.emailRecipients);
+                }
             }
 
             String workflowId = request != null ? request.workflowId : null;
@@ -85,12 +89,13 @@ public class ExportController {
     }
 
     public static class TriggerRequest {
-        public String workflowId;  // 工作流ID（从数据库加载）
+        public String workflowId;  // 工作流 ID（从数据库加载）
         public String url;
         public String password;
         public String format;
         public String quality;
         public String watermark;
+        public String emailRecipients;  // 邮件接收人列表，多个逗号分隔
     }
 
     public static class ValidateRequest {

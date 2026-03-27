@@ -55,7 +55,6 @@ crawler:
       enabled: ${SMTP_ENABLED:true}
       options:
         from: ${SMTP_FROM:}
-        to: ${SMTP_TO:}
         host: ${SMTP_HOST:smtp.163.com}
         port: ${SMTP_PORT:465}
         user: ${SMTP_USER:}
