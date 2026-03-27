@@ -1,5 +1,7 @@
 package com.exportbot.crawler.repository;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.exportbot.crawler.config.Workflow;
 import com.exportbot.crawler.config.ConfigLoader;
 import com.exportbot.crawler.entity.WorkflowEntity;
@@ -53,5 +55,10 @@ public class WorkflowRepository {
     public void delete(String code) {
         workflowMapper.deleteByCode(code);
         logger.info("Workflow deleted: {}", code);
+    }
+
+    public IPage<WorkflowEntity> findPage(int pageNum, int pageSize, String keyword) {
+        Page<WorkflowEntity> page = new Page<>(pageNum, pageSize);
+        return workflowMapper.selectWorkflowPage(page, keyword);
     }
 }

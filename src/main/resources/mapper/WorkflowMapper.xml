@@ -56,18 +56,22 @@
         UPDATE workflows SET deleted = 1 WHERE code = #{code} AND deleted = 0
     </update>
 
-    <!-- 创建数据库（如果不存在） -->
-    <update id="createDatabase">
-        CREATE DATABASE IF NOT EXISTS auto_diagram
-    </update>
+    <!-- 分页查询工作流列表 -->
+    <select id="selectWorkflowPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM workflows
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (code LIKE CONCAT('%', #{keyword}, '%')
+            OR name LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY modify_time DESC
+    </select>
 
-    <!-- 删除旧表（如果存在） -->
-    <update id="dropTable">
-        DROP TABLE IF EXISTS workflows
-    </update>
-
-    <!-- 创建工作流表 -->
-    <update id="createTable">
+    <!-- 创建工作流表（如果不存在），对应 SchemaAware#createTableIfNotExists() -->
+    <update id="createTableIfNotExists">
         CREATE TABLE IF NOT EXISTS workflows (
             id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
             code VARCHAR(64) NOT NULL UNIQUE COMMENT '工作流编码，唯一标识',

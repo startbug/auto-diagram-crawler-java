@@ -1,5 +1,7 @@
 package com.exportbot.crawler.web;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.exportbot.crawler.entity.WorkflowEntity;
 import com.exportbot.crawler.repository.WorkflowRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +85,14 @@ public class WorkflowController {
             return ResponseEntity.internalServerError()
                 .body(Map.of("success", false, "error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<IPage<WorkflowEntity>> listWorkflowsByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(workflowRepository.findPage(pageNum, pageSize, keyword));
     }
 
     public static class SaveRequest {

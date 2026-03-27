@@ -1,14 +1,16 @@
 package com.exportbot.crawler.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.exportbot.crawler.entity.WorkflowEntity;
+import com.exportbot.crawler.schema.SchemaAware;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
 @Mapper
-public interface WorkflowMapper extends BaseMapper<WorkflowEntity> {
+public interface WorkflowMapper extends BaseMapper<WorkflowEntity>, SchemaAware {
 
     /**
      * 查询所有工作流，按更新时间倒序
@@ -36,17 +38,22 @@ public interface WorkflowMapper extends BaseMapper<WorkflowEntity> {
     int deleteByCode(@Param("code") String code);
 
     /**
-     * 创建数据库
+     * 分页查询工作流列表
      */
-    void createDatabase();
+    IPage<WorkflowEntity> selectWorkflowPage(IPage<WorkflowEntity> page,
+                                              @Param("keyword") String keyword);
 
     /**
-     * 删除表
+     * 创建表（如果不存在）
      */
-    void dropTable();
+    @Override
+    void createTableIfNotExists();
 
     /**
-     * 创建表
+     * 返回表名
      */
-    void createTable();
+    @Override
+    default String tableName() {
+        return "workflows";
+    }
 }

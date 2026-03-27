@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exportbot.crawler.mapper.SchedulerConfigMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.exportbot.crawler.entity.SchedulerConfigEntity">
+        <id column="id" property="id"/>
+        <result column="job_name" property="jobName"/>
+        <result column="cron_expression" property="cronExpression"/>
+        <result column="enabled" property="enabled"/>
+        <result column="description" property="description"/>
+        <result column="last_execute_time" property="lastExecuteTime"/>
+        <result column="last_execute_result" property="lastExecuteResult"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="creator" property="creator"/>
+        <result column="modifier" property="modifier"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, job_name, cron_expression, enabled, description, last_execute_time, last_execute_result,
+        create_time, modify_time, creator, modifier, deleted
+    </sql>
+
+    <!-- 根据任务名称查询配置 -->
+    <select id="selectByJobName" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM scheduler_configs
+        WHERE job_name = #{jobName} AND deleted = 0
+    </select>
+
+    <!-- 查询所有启用的配置 -->
+    <select id="selectEnabledConfigs" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM scheduler_configs
+        WHERE enabled = 1 AND deleted = 0
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 分页查询配置列表 -->
+    <select id="selectConfigPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM scheduler_configs
+        WHERE deleted = 0
+        <if test="jobName != null and jobName != ''">
+            AND job_name LIKE CONCAT('%', #{jobName}, '%')
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新最后执行时间和结果 -->
+    <update id="updateLastExecute">
+        UPDATE scheduler_configs
+        SET last_execute_time = CURRENT_TIMESTAMP,
+            last_execute_result = #{result}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 创建定时任务配置表（如果不存在） -->
+    <update id="createTableIfNotExists">
+        CREATE TABLE IF NOT EXISTS scheduler_configs (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+
+            -- 业务字段
+            job_name VARCHAR(64) NOT NULL COMMENT '任务名称',
+            cron_expression VARCHAR(64) NOT NULL COMMENT 'Cron表达式',
+            enabled TINYINT DEFAULT 1 COMMENT '是否启用：0-禁用，1-启用',
+            description VARCHAR(255) DEFAULT NULL COMMENT '任务描述',
+            last_execute_time TIMESTAMP NULL DEFAULT NULL COMMENT '最后执行时间',
+            last_execute_result VARCHAR(32) DEFAULT NULL COMMENT '最后执行结果：SUCCESS-成功，FAILED-失败',
+
+            -- 标准字段
+            create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+            modify_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+            creator VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+            modifier VARCHAR(64) DEFAULT NULL COMMENT '修改人',
+            deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+
+            -- 索引
+            UNIQUE KEY uk_job_name (job_name) COMMENT '任务名称唯一索引',
+            INDEX idx_enabled (enabled) COMMENT '启用状态索引',
+            INDEX idx_create_time (create_time) COMMENT '创建时间索引',
+            INDEX idx_modify_time (modify_time) COMMENT '修改时间索引'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务配置表'
+    </update>
+
+</mapper>

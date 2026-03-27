@@ -7,9 +7,9 @@ spring:
   main:
     web-application-type: servlet
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/auto_diagram?useSSL=true&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:}
+    url: jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/auto_diagram?useSSL=true&serverTimezone=Asia/Shanghai
+    username: 2aKGCxWVfqofg2r.root
+    password: d76hxk8M1VLUQstM
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 # MyBatis Plus 配置

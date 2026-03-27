@@ -1,0 +1,31 @@
+package com.exportbot.crawler.enums;
+
+import lombok.Getter;
+
+@Getter
+public enum TaskStatus {
+
+    PENDING(0, "待执行"),
+    RUNNING(1, "执行中"),
+    SUCCESS(2, "执行成功"),
+    FAILED(3, "执行异常"),
+    DELIVERING(4, "待交付"),
+    DELIVERED(5, "已交付");
+
+    private final int code;
+    private final String desc;
+
+    TaskStatus(int code, String desc) {
+        this.code = code;
+        this.desc = desc;
+    }
+
+    public static TaskStatus fromCode(int code) {
+        for (TaskStatus status : values()) {
+            if (status.code == code) {
+                return status;
+            }
+        }
+        return PENDING;
+    }
+}

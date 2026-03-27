@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exportbot.crawler.mapper.SysUserMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.exportbot.crawler.entity.SysUserEntity">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="nickname" property="nickname"/>
+        <result column="role" property="role"/>
+        <result column="status" property="status"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="creator" property="creator"/>
+        <result column="modifier" property="modifier"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, username, password, nickname, role, status, last_login_time,
+        create_time, modify_time, creator, modifier, deleted
+    </sql>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="selectByUsername" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_users
+        WHERE username = #{username} AND deleted = 0
+    </select>
+
+    <!-- 分页查询用户列表 -->
+    <select id="selectUserPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_users
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%')
+            OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 创建用户表（如果不存在） -->
+    <update id="createTableIfNotExists">
+        CREATE TABLE IF NOT EXISTS sys_users (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+
+            -- 业务字段
+            username VARCHAR(64) NOT NULL COMMENT '用户名',
+            password VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
+            nickname VARCHAR(64) DEFAULT NULL COMMENT '昵称',
+            role VARCHAR(32) DEFAULT 'USER' COMMENT '角色：SUPER_ADMIN-超级管理员，ADMIN-管理员，USER-普通用户',
+            status TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+            last_login_time TIMESTAMP NULL DEFAULT NULL COMMENT '最后登录时间',
+
+            -- 标准字段
+            create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+            modify_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+            creator VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+            modifier VARCHAR(64) DEFAULT NULL COMMENT '修改人',
+            deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+
+            -- 索引
+            UNIQUE KEY uk_username (username) COMMENT '用户名唯一索引',
+            INDEX idx_role (role) COMMENT '角色索引',
+            INDEX idx_status (status) COMMENT '状态索引',
+            INDEX idx_create_time (create_time) COMMENT '创建时间索引',
+            INDEX idx_modify_time (modify_time) COMMENT '修改时间索引'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='后台用户表'
+    </update>
+
+</mapper>

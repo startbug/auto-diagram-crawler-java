@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exportbot.crawler.mapper.OrderMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.exportbot.crawler.entity.OrderEntity">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="item_id" property="itemId"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="seller_id" property="sellerId"/>
+        <result column="original_json" property="originalJson"/>
+        <result column="export_count" property="exportCount"/>
+        <result column="used_count" property="usedCount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="creator" property="creator"/>
+        <result column="modifier" property="modifier"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, order_no, item_id, order_status, seller_id, original_json, export_count, used_count,
+        create_time, modify_time, creator, modifier, deleted
+    </sql>
+
+    <!-- 根据订单号查询订单 -->
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE order_no = #{orderNo} AND deleted = 0
+    </select>
+
+    <!-- 分页查询订单列表 -->
+    <select id="selectOrderPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM orders
+        WHERE deleted = 0
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="orderStatus != null">
+            AND order_status = #{orderStatus}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 增加已使用次数 -->
+    <update id="incrementUsedCount">
+        UPDATE orders
+        SET used_count = used_count + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 创建订单表（如果不存在） -->
+    <update id="createTableIfNotExists">
+        CREATE TABLE IF NOT EXISTS orders (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+
+            -- 业务字段
+            order_no VARCHAR(64) NOT NULL COMMENT '订单编号',
+            item_id BIGINT NOT NULL COMMENT '商品ID',
+            order_status TINYINT DEFAULT 1 COMMENT '订单状态：0-未知，1-已创建，2-已付款，3-已发货，4-交易成功，5-已退款，6-交易关闭',
+            seller_id BIGINT DEFAULT NULL COMMENT '商家ID',
+            original_json TEXT COMMENT '平台回调原始JSON',
+            export_count INT DEFAULT 1 COMMENT '导出次数权益',
+            used_count INT DEFAULT 0 COMMENT '已使用次数',
+
+            -- 标准字段
+            create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+            modify_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+            creator VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+            modifier VARCHAR(64) DEFAULT NULL COMMENT '修改人',
+            deleted TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+
+            -- 索引
+            UNIQUE KEY uk_order_no (order_no) COMMENT '订单号唯一索引',
+            INDEX idx_item_id (item_id) COMMENT '商品ID索引',
+            INDEX idx_order_status (order_status) COMMENT '订单状态索引',
+            INDEX idx_seller_id (seller_id) COMMENT '商家ID索引',
+            INDEX idx_create_time (create_time) COMMENT '创建时间索引',
+            INDEX idx_modify_time (modify_time) COMMENT '修改时间索引'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表'
+    </update>
+
+</mapper>

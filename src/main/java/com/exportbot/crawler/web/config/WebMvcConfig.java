@@ -2,6 +2,7 @@ package com.exportbot.crawler.web.config;
 
 import com.exportbot.crawler.web.interceptor.TraceIdInterceptor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -23,5 +24,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(traceIdInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/static/**", "/favicon.ico");
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        // 配置跨域支持
+        registry.addMapping("/api/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
     }
 }
