@@ -4,7 +4,7 @@
     <!-- 定义变量 -->
     <property name="LOG_HOME" value="./logs" />
     <property name="APP_NAME" value="auto-diagram-crawler" />
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n" />
 
     <!-- 控制台输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

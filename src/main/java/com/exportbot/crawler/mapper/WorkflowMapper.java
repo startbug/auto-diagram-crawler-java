@@ -49,36 +49,4 @@ public interface WorkflowMapper extends BaseMapper<WorkflowEntity> {
      * 创建表
      */
     void createTable();
-
-    /**
-     * 如果字段不存在则添加字段
-     */
-    void addColumnIfNotExists(@Param("columnName") String columnName,
-                              @Param("columnType") String columnType,
-                              @Param("comment") String comment);
-
-    /**
-     * 如果字段存在则重命名字段
-     */
-    void renameColumnIfExists(@Param("oldName") String oldName,
-                              @Param("newName") String newName,
-                              @Param("columnType") String columnType,
-                              @Param("comment") String comment);
-
-    /**
-     * 如果索引不存在则添加索引
-     */
-    void addIndexIfNotExists(@Param("indexName") String indexName,
-                             @Param("columnName") String columnName);
-
-    /**
-     * 更新字段备注
-     */
-    void updateColumnComment(@Param("columnName") String columnName,
-                             @Param("comment") String comment);
-
-    /**
-     * 更新表备注
-     */
-    void updateTableComment(@Param("comment") String comment);
 }
