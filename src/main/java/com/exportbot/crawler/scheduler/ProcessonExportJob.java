@@ -2,6 +2,7 @@ package com.exportbot.crawler.scheduler;
 
 import com.exportbot.crawler.config.AppConfig;
 import com.exportbot.crawler.pipeline.PipelineService;
+
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -11,9 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ExportJob implements Job {
+public class ProcessonExportJob implements Job {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExportJob.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProcessonExportJob.class);
 
     @Autowired
     private PipelineService pipelineService;
@@ -26,7 +27,7 @@ public class ExportJob implements Job {
         logger.info("Scheduled export job started");
 
         try {
-            var result = pipelineService.runPipeline(null, false, null);
+            var result = pipelineService.runPipeline("processon", false, null);
 
             if (result.workflow().success()) {
                 logger.info("Scheduled export completed successfully: {} files downloaded",

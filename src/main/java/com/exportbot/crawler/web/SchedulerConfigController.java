@@ -5,7 +5,7 @@ import com.exportbot.crawler.dto.SchedulerConfigRequestDTO;
 import com.exportbot.crawler.entity.SchedulerConfigEntity;
 import com.exportbot.crawler.entity.common.R;
 import com.exportbot.crawler.repository.SchedulerConfigRepository;
-import com.exportbot.crawler.scheduler.ExportJob;
+import com.exportbot.crawler.scheduler.ProcessonExportJob;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +182,7 @@ public class SchedulerConfigController {
         }
 
         // 创建新任务
-        JobDetail jobDetail = JobBuilder.newJob(ExportJob.class)
+        JobDetail jobDetail = JobBuilder.newJob(ProcessonExportJob.class)
                 .withIdentity(jobKey)
                 .storeDurably()
                 .build();

@@ -67,7 +67,10 @@ public class OrderController {
 
             OrderCallbackResponseDTO response = new OrderCallbackResponseDTO();
             response.setOrderId(order.getId());
-            
+
+            // TODO 用户下单成功后，创建订单，然后生成落地页地址，推送落地页地址消息给用户
+            // TODO 后续对接电商平台接口推送消息
+
             return ResponseEntity.ok(R.success(response));
         } catch (Exception e) {
             logger.error("Failed to handle order callback", e);

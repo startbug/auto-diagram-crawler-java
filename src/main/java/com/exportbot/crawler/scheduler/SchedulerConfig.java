@@ -14,7 +14,7 @@ public class SchedulerConfig {
 
     @Bean
     public JobDetail exportJobDetail() {
-        return JobBuilder.newJob(ExportJob.class)
+        return JobBuilder.newJob(ProcessonExportJob.class)
                 .withIdentity("exportJob")
                 .storeDurably()
                 .build();
